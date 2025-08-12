@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة ضريبة القيمة المضافة السعودية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        .result-box {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">حاسبة ضريبة القيمة المضافة</h1>
+            <p class="text-gray-500 mt-2">المملكة العربية السعودية (15%)</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="mb-4">
+            <label for="amount" class="block text-lg font-medium text-gray-700 mb-2">أدخل المبلغ (بالريال)</label>
+            <input type="number" id="amount" placeholder="مثال: 1000" class="w-full px-4 py-3 text-lg text-center border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <button onclick="addVAT()" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">
+                إضافة الضريبة
+            </button>
+            <button onclick="removeVAT()" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-transform transform hover:scale-105">
+                إزالة الضريبة
+            </button>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results" class="result-box bg-gray-50 rounded-xl p-5 border border-gray-200 space-y-4" style="display: none;">
+             <div class="flex justify-between items-center">
+                <p class="text-lg text-gray-600">السعر الأساسي:</p>
+                <p id="basePrice" class="text-xl font-bold text-gray-800"></p>
+            </div>
+            <div class="flex justify-between items-center">
+                <p class="text-lg text-gray-600">قيمة الضريبة (15%):</p>
+                <p id="vatAmount" class="text-xl font-bold text-gray-800"></p>
+            </div>
+            <hr>
+            <div class="flex justify-between items-center">
+                <p class="text-xl font-bold text-blue-800">السعر الإجمالي:</p>
+                <p id="totalPrice" class="text-2xl font-bold text-blue-800"></p>
+            </div>
+        </div>
+        
+        <!-- Error Message -->
+        <div id="error" class="text-red-600 text-center mt-4 font-semibold" style="display: none;"></div>
+
+    </div>
+
+    <script>
+        const amountInput = document.getElementById('amount');
+        const resultsDiv = document.getElementById('results');
+        const errorDiv = document.getElementById('error');
+        
+        const basePriceEl = document.getElementById('basePrice');
+        const vatAmountEl = document.getElementById('vatAmount');
+        const totalPriceEl = document.getElementById('totalPrice');
+
+        const VAT_RATE = 0.15;
+
+        // Function to format numbers as currency
+        function formatCurrency(num) {
+            return `${num.toFixed(2)} ريال`;
+        }
+        
+        // Function to validate input
+        function validateInput() {
+            const amount = parseFloat(amountInput.value);
+            if (isNaN(amount) || amount <= 0) {
+                errorDiv.textContent = 'الرجاء إدخال مبلغ صحيح أكبر من صفر.';
+                errorDiv.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                return null;
+            }
+            errorDiv.style.display = 'none';
+            return amount;
+        }
+
+        // Function to add VAT to a price
+        function addVAT() {
+            const baseAmount = validateInput();
+            if (baseAmount === null) return;
+
+            const vat = baseAmount * VAT_RATE;
+            const total = baseAmount + vat;
+
+            basePriceEl.textContent = formatCurrency(baseAmount);
+            vatAmountEl.textContent = formatCurrency(vat);
+            totalPriceEl.textContent = formatCurrency(total);
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        // Function to remove VAT from a price
+        function removeVAT() {
+            const totalAmount = validateInput();
+            if (totalAmount === null) return;
+
+            const base = totalAmount / (1 + VAT_RATE);
+            const vat = totalAmount - base;
+
+            basePriceEl.textContent = formatCurrency(base);
+            vatAmountEl.textContent = formatCurrency(vat);
+            totalPriceEl.textContent = formatCurrency(totalAmount);
+
+            resultsDiv.style.display = 'block';
+        }
+        
+        // Clear results when input changes
+        amountInput.addEventListener('input', () => {
+             if (resultsDiv.style.display === 'block') {
+                 resultsDiv.style.display = 'none';
+                 errorDiv.style.display = 'none';
+             }
+        });
+
+    </script>
+</body>
+</html>
