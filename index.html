@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة الضرائب المتكاملة (قيمة مضافة، مطاعم، فنادق)</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts for better Arabic typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+          -webkit-appearance: none; 
+          margin: 0; 
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+        .result-box {
+            background-color: #f3f4f6; /* gray-100 */
+            border-right: 4px solid #3b82f6; /* blue-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">حاسبة الضرائب المتكاملة</h1>
+            <p class="text-md text-gray-600 mt-2">أداة لحساب ضريبة القيمة المضافة، فواتير المطاعم والفنادق</p>
+        </div>
+
+        <!-- Calculators Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Calculator 1: Add VAT -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3">1. إضافة الضريبة على السعر</h2>
+                <div class="space-y-4">
+                    <label for="base-price" class="block text-lg font-semibold text-gray-700">المبلغ قبل الضريبة</label>
+                    <div class="relative">
+                        <input type="number" id="base-price" placeholder="أدخل السعر الأصلي" class="w-full p-3 pr-12 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <span class="absolute top-1/2 -translate-y-1/2 left-3 text-gray-500 font-semibold">جنيه</span>
+                    </div>
+                    <button id="add-vat-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105">احسب السعر النهائي</button>
+                    <div id="add-vat-results" class="space-y-3 pt-4 hidden">
+                        <div class="result-box p-4 rounded-lg"><p class="text-sm text-gray-600">قيمة الضريبة (14%)</p><p id="vat-amount-add" class="text-2xl font-bold text-gray-900">0.00 جنيه</p></div>
+                        <div class="result-box p-4 rounded-lg"><p class="text-sm text-gray-600">الإجمالي شامل الضريبة</p><p id="total-price-add" class="text-2xl font-bold text-blue-700">0.00 جنيه</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calculator 2: Extract VAT -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3">2. استخراج الضريبة من الإجمالي</h2>
+                <div class="space-y-4">
+                    <label for="total-price" class="block text-lg font-semibold text-gray-700">المبلغ شامل الضريبة</label>
+                    <div class="relative">
+                        <input type="number" id="total-price" placeholder="أدخل سعر الفاتورة" class="w-full p-3 pr-12 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                        <span class="absolute top-1/2 -translate-y-1/2 left-3 text-gray-500 font-semibold">جنيه</span>
+                    </div>
+                    <button id="extract-vat-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300 transform hover:scale-105">استخرج قيمة الضريبة</button>
+                     <div id="extract-vat-results" class="space-y-3 pt-4 hidden">
+                        <div class="result-box p-4 rounded-lg !border-green-500"><p class="text-sm text-gray-600">المبلغ الأصلي (قبل الضريبة)</p><p id="base-price-extract" class="text-2xl font-bold text-gray-900">0.00 جنيه</p></div>
+                        <div class="result-box p-4 rounded-lg !border-green-500"><p class="text-sm text-gray-600">قيمة الضريبة (14%)</p><p id="vat-amount-extract" class="text-2xl font-bold text-green-700">0.00 جنيه</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calculator 3: Restaurant Bill -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3">3. حساب فاتورة المطاعم</h2>
+                <div class="space-y-4">
+                    <label for="bill-subtotal" class="block text-lg font-semibold text-gray-700">مبلغ الفاتورة قبل الخدمة والضريبة</label>
+                    <div class="relative">
+                        <input type="number" id="bill-subtotal" placeholder="أدخل مبلغ الفاتورة الأصلي" class="w-full p-3 pr-12 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        <span class="absolute top-1/2 -translate-y-1/2 left-3 text-gray-500 font-semibold">جنيه</span>
+                    </div>
+                    <button id="restaurant-btn" class="w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 transition-all duration-300 transform hover:scale-105">احسب الفاتورة النهائية</button>
+                     <div id="restaurant-results" class="space-y-3 pt-4 hidden">
+                        <div class="result-box p-4 rounded-lg !border-purple-500"><p class="text-sm text-gray-600">قيمة الخدمة (12%)</p><p id="service-charge" class="text-xl font-bold text-gray-900">0.00 جنيه</p></div>
+                        <div class="result-box p-4 rounded-lg !border-purple-500"><p class="text-sm text-gray-600">قيمة الضريبة المضافة (14%)</p><p id="vat-restaurant" class="text-xl font-bold text-gray-900">0.00 جنيه</p></div>
+                        <div class="result-box p-4 rounded-lg !border-purple-500 bg-purple-100"><p class="text-sm text-gray-600">الإجمالي النهائي للفاتورة</p><p id="grand-total-restaurant" class="text-2xl font-bold text-purple-700">0.00 جنيه</p></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Calculator 4: Hotel Bill -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-3">4. حساب فاتورة الفنادق</h2>
+                <div class="space-y-4">
+                    <label for="hotel-subtotal" class="block text-lg font-semibold text-gray-700">سعر الإقامة قبل الضرائب</label>
+                    <div class="relative">
+                        <input type="number" id="hotel-subtotal" placeholder="أدخل سعر الإقامة الأصلي" class="w-full p-3 pr-12 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                        <span class="absolute top-1/2 -translate-y-1/2 left-3 text-gray-500 font-semibold">جنيه</span>
+                    </div>
+                    <button id="hotel-btn" class="w-full bg-teal-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-300 transition-all duration-300 transform hover:scale-105">احسب فاتورة الفندق</button>
+                     <div id="hotel-results" class="space-y-3 pt-4 hidden">
+                        <div class="result-box p-3 rounded-lg !border-teal-500"><p class="text-sm text-gray-600">قيمة الخدمة (12%)</p><p id="hotel-service-charge" class="text-lg font-bold text-gray-900">0.00 جنيه</p></div>
+                        <div class="result-box p-3 rounded-lg !border-teal-500"><p class="text-sm text-gray-600">ضريبة البلدية (1%)</p><p id="hotel-municipality-tax" class="text-lg font-bold text-gray-900">0.00 جنيه</p></div>
+                        <div class="result-box p-3 rounded-lg !border-teal-500"><p class="text-sm text-gray-600">ضريبة القيمة المضافة (14%)</p><p id="hotel-vat" class="text-lg font-bold text-gray-900">0.00 جنيه</p></div>
+                        <div class="result-box p-4 rounded-lg !border-teal-500 bg-teal-100"><p class="text-sm text-gray-600">الإجمالي النهائي للفاتورة</p><p id="grand-total-hotel" class="text-2xl font-bold text-teal-700">0.00 جنيه</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="mt-8 text-center text-xs text-gray-500">
+            <p><strong>إخلاء مسؤولية:</strong> هذه الحاسبة هي أداة تقديرية للأغراض الإرشادية فقط. قد تختلف النسب المطبقة. يرجى مراجعة فواتيرك الرسمية والتأكد من الحسابات مع محاسب قانوني معتمد.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- Constants ---
+        const VAT_RATE = 0.14;
+        const VAT_FACTOR = 1.14;
+        const SERVICE_RATE = 0.12;
+        const MUNICIPALITY_RATE = 0.01;
+
+        // --- DOM Elements ---
+        const basePriceInput = document.getElementById('base-price'), addVatBtn = document.getElementById('add-vat-btn'), addVatResults = document.getElementById('add-vat-results'), vatAmountAddEl = document.getElementById('vat-amount-add'), totalPriceAddEl = document.getElementById('total-price-add');
+        const totalPriceInput = document.getElementById('total-price'), extractVatBtn = document.getElementById('extract-vat-btn'), extractVatResults = document.getElementById('extract-vat-results'), basePriceExtractEl = document.getElementById('base-price-extract'), vatAmountExtractEl = document.getElementById('vat-amount-extract');
+        const billSubtotalInput = document.getElementById('bill-subtotal'), restaurantBtn = document.getElementById('restaurant-btn'), restaurantResults = document.getElementById('restaurant-results'), serviceChargeEl = document.getElementById('service-charge'), vatRestaurantEl = document.getElementById('vat-restaurant'), grandTotalRestaurantEl = document.getElementById('grand-total-restaurant');
+        const hotelSubtotalInput = document.getElementById('hotel-subtotal'), hotelBtn = document.getElementById('hotel-btn'), hotelResults = document.getElementById('hotel-results'), hotelServiceChargeEl = document.getElementById('hotel-service-charge'), hotelMunicipalityTaxEl = document.getElementById('hotel-municipality-tax'), hotelVatEl = document.getElementById('hotel-vat'), grandTotalHotelEl = document.getElementById('grand-total-hotel');
+
+        // --- Currency Formatter ---
+        const currencyFormatter = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // --- Event Listeners ---
+        addVatBtn.addEventListener('click', calculateAndAddVat);
+        extractVatBtn.addEventListener('click', calculateAndExtractVat);
+        restaurantBtn.addEventListener('click', calculateRestaurantBill);
+        hotelBtn.addEventListener('click', calculateHotelBill);
+
+        // --- Functions ---
+        function calculateAndAddVat() {
+            const basePrice = parseFloat(basePriceInput.value) || 0;
+            if (basePrice <= 0) return alert('الرجاء إدخال مبلغ صحيح.');
+            vatAmountAddEl.textContent = currencyFormatter.format(basePrice * VAT_RATE);
+            totalPriceAddEl.textContent = currencyFormatter.format(basePrice * VAT_FACTOR);
+            addVatResults.classList.remove('hidden');
+        }
+
+        function calculateAndExtractVat() {
+            const totalPrice = parseFloat(totalPriceInput.value) || 0;
+            if (totalPrice <= 0) return alert('الرجاء إدخال مبلغ صحيح.');
+            const basePrice = totalPrice / VAT_FACTOR;
+            vatAmountExtractEl.textContent = currencyFormatter.format(totalPrice - basePrice);
+            basePriceExtractEl.textContent = currencyFormatter.format(basePrice);
+            extractVatResults.classList.remove('hidden');
+        }
+
+        function calculateRestaurantBill() {
+            const subtotal = parseFloat(billSubtotalInput.value) || 0;
+            if (subtotal <= 0) return alert('الرجاء إدخال مبلغ صحيح.');
+            const serviceCharge = subtotal * SERVICE_RATE;
+            const totalAfterService = subtotal + serviceCharge;
+            const vatAmount = totalAfterService * VAT_RATE;
+            serviceChargeEl.textContent = currencyFormatter.format(serviceCharge);
+            vatRestaurantEl.textContent = currencyFormatter.format(vatAmount);
+            grandTotalRestaurantEl.textContent = currencyFormatter.format(totalAfterService + vatAmount);
+            restaurantResults.classList.remove('hidden');
+        }
+
+        function calculateHotelBill() {
+            const subtotal = parseFloat(hotelSubtotalInput.value) || 0;
+            if (subtotal <= 0) return alert('الرجاء إدخال مبلغ صحيح.');
+            const serviceCharge = subtotal * SERVICE_RATE;
+            const municipalityTax = subtotal * MUNICIPALITY_RATE;
+            const baseForVat = subtotal + serviceCharge;
+            const vatAmount = baseForVat * VAT_RATE;
+            const grandTotal = subtotal + serviceCharge + municipalityTax + vatAmount;
+            
+            hotelServiceChargeEl.textContent = currencyFormatter.format(serviceCharge);
+            hotelMunicipalityTaxEl.textContent = currencyFormatter.format(municipalityTax);
+            hotelVatEl.textContent = currencyFormatter.format(vatAmount);
+            grandTotalHotelEl.textContent = currencyFormatter.format(grandTotal);
+            hotelResults.classList.remove('hidden');
+        }
+    </script>
+
+</body>
+</html>
