@@ -31,6 +31,12 @@
 <body class="bg-gray-100">
 
     <div class="container mx-auto p-4 md:p-8 max-w-3xl">
+        <!-- رسالة هامة حول مفتاح API -->
+        <div id="api-key-notice" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-lg shadow-md" role="alert">
+            <p class="font-bold">ملاحظة هامة لتفعيل ميزات Gemini:</p>
+            <p>لتشغيل ميزات الذكاء الاصطناعي، يجب عليك إضافة مفتاح API الخاص بك من Google AI Studio في الكود. ابحث عن المتغير <code class="bg-yellow-200 p-1 rounded">GEMINI_API_KEY</code> داخل وسم <code class="bg-yellow-200 p-1 rounded">&lt;script&gt;</code> وضع المفتاح الخاص بك.</p>
+        </div>
+
         <div class="bg-white rounded-lg shadow-lg p-6 md:p-8">
             
             <div class="text-center mb-6">
@@ -118,6 +124,12 @@
     </div>
 
     <script>
+        // --- بداية الكود المُعدل ---
+        // !! هام: ضع مفتاح API الخاص بك هنا لتفعيل ميزات Gemini
+        // يمكنك الحصول على مفتاح مجاني من Google AI Studio
+        const GEMINI_API_KEY = "AIzaSyDt2qQdQ6TKy4WSEBsGS3zYb2Ty598IMcMا"; 
+        // --- نهاية الكود المُعدل ---
+
         // --- عناصر الواجهة ---
         const urlInput = document.getElementById('urlInput');
         const generateBtn = document.getElementById('generateBtn');
@@ -129,21 +141,18 @@
         const btnText = document.getElementById('btn-text');
         const btnLoader = document.getElementById('btn-loader');
         
-        // --- عناصر Gemini ---
         const geminiBtn = document.getElementById('geminiBtn');
         const geminiBtnText = document.getElementById('gemini-btn-text');
         const geminiBtnLoader = document.getElementById('gemini-btn-loader');
         const geminiResultsDiv = document.getElementById('gemini-results');
         const geminiSuggestionsContainer = document.getElementById('gemini-suggestions-container');
 
-        // --- عناصر FAQ ---
         const faqBtn = document.getElementById('faqBtn');
         const faqBtnText = document.getElementById('faq-btn-text');
         const faqBtnLoader = document.getElementById('faq-btn-loader');
         const faqResultsDiv = document.getElementById('faq-results');
         const faqContainer = document.getElementById('faq-container');
 
-        // --- عناصر المحتوى الجديد ---
         const keywordsInput = document.getElementById('keywordsInput');
         const contentBtn = document.getElementById('contentBtn');
         const contentBtnText = document.getElementById('content-btn-text');
@@ -204,59 +213,65 @@
         }
 
         async function handleGeminiAnalysis() {
-            if (!pageContentForGemini) return showError('لا يوجد محتوى لتحليله. الرجاء إجراء التحليل الأساسي أولاً.');
-            setLoading(true, 'gemini');
-            geminiResultsDiv.classList.add('hidden');
-            geminiSuggestionsContainer.innerHTML = '';
+            if (checkApiKey()) {
+                if (!pageContentForGemini) return showError('لا يوجد محتوى لتحليله. الرجاء إجراء التحليل الأساسي أولاً.');
+                setLoading(true, 'gemini');
+                geminiResultsDiv.classList.add('hidden');
+                geminiSuggestionsContainer.innerHTML = '';
 
-            try {
-                const { suggestions } = await callGeminiForTitles(pageContentForGemini);
-                displayGeminiResults(suggestions);
-                geminiResultsDiv.classList.remove('hidden');
-            } catch (error) {
-                console.error("Gemini API Error:", error);
-                showError('حدث خطأ أثناء التواصل مع Gemini. الرجاء المحاولة مرة أخرى.');
-            } finally {
-                setLoading(false, 'gemini');
+                try {
+                    const { suggestions } = await callGeminiForTitles(pageContentForGemini);
+                    displayGeminiResults(suggestions);
+                    geminiResultsDiv.classList.remove('hidden');
+                } catch (error) {
+                    console.error("Gemini API Error:", error);
+                    showError('حدث خطأ أثناء التواصل مع Gemini. تأكد من صحة مفتاح API.');
+                } finally {
+                    setLoading(false, 'gemini');
+                }
             }
         }
 
         async function handleFaqGeneration() {
-            if (!pageContentForGemini) return showError('لا يوجد محتوى لتحليله. الرجاء إجراء التحليل الأساسي أولاً.');
-            setLoading(true, 'faq');
-            faqResultsDiv.classList.add('hidden');
-            faqContainer.innerHTML = '';
+            if (checkApiKey()) {
+                if (!pageContentForGemini) return showError('لا يوجد محتوى لتحليله. الرجاء إجراء التحليل الأساسي أولاً.');
+                setLoading(true, 'faq');
+                faqResultsDiv.classList.add('hidden');
+                faqContainer.innerHTML = '';
 
-            try {
-                const { faqs } = await callGeminiForFaqs(pageContentForGemini);
-                displayFaqResults(faqs);
-                faqResultsDiv.classList.remove('hidden');
-            } catch (error) {
-                console.error("Gemini FAQ API Error:", error);
-                showError('حدث خطأ أثناء توليد الأسئلة الشائعة. الرجاء المحاولة مرة أخرى.');
-            } finally {
-                setLoading(false, 'faq');
+                try {
+                    const { faqs } = await callGeminiForFaqs(pageContentForGemini);
+                    displayFaqResults(faqs);
+                    faqResultsDiv.classList.remove('hidden');
+                } catch (error) {
+                    console.error("Gemini FAQ API Error:", error);
+                    showError('حدث خطأ أثناء توليد الأسئلة الشائعة. تأكد من صحة مفتاح API.');
+                } finally {
+                    setLoading(false, 'faq');
+                }
             }
         }
 
         async function handleContentGeneration() {
-            if (!pageContentForGemini) return showError('لا يوجد محتوى لتحليله. الرجاء إجراء التحليل الأساسي أولاً.');
-            const keywords = keywordsInput.value.trim();
-            if (!keywords) return showError('الرجاء إدخال الكلمات المفتاحية التي تريد استهدافها.');
-            
-            setLoading(true, 'content');
-            contentResultsDiv.classList.add('hidden');
-            contentContainer.innerHTML = '';
+            if (checkApiKey()) {
+                if (!pageContentForGemini) return showError('لا يوجد محتوى لتحليله. الرجاء إجراء التحليل الأساسي أولاً.');
+                const keywords = keywordsInput.value.trim();
+                if (!keywords) return showError('الرجاء إدخال الكلمات المفتاحية التي تريد استهدافها.');
+                
+                setLoading(true, 'content');
+                contentResultsDiv.classList.add('hidden');
+                contentContainer.innerHTML = '';
 
-            try {
-                const { newSections } = await callGeminiForContent(pageContentForGemini, keywords);
-                displayContentResults(newSections);
-                contentResultsDiv.classList.remove('hidden');
-            } catch (error) {
-                console.error("Gemini Content API Error:", error);
-                showError('حدث خطأ أثناء توليد المحتوى. الرجاء المحاولة مرة أخرى.');
-            } finally {
-                setLoading(false, 'content');
+                try {
+                    const { newSections } = await callGeminiForContent(pageContentForGemini, keywords);
+                    displayContentResults(newSections);
+                    contentResultsDiv.classList.remove('hidden');
+                } catch (error) {
+                    console.error("Gemini Content API Error:", error);
+                    showError('حدث خطأ أثناء توليد المحتوى. تأكد من صحة مفتاح API.');
+                } finally {
+                    setLoading(false, 'content');
+                }
             }
         }
 
@@ -278,7 +293,7 @@
         }
         
         async function callGeminiAPI(prompt) {
-            const apiKey = "";
+            const apiKey = GEMINI_API_KEY; // استخدام المتغير الذي أضفته
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             
             const payload = {
@@ -381,6 +396,14 @@
         function showError(message) {
             errorMessage.textContent = message;
             errorContainer.classList.remove('hidden');
+        }
+
+        function checkApiKey() {
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === "ادخل مفتاح API الخاص بك هنا") {
+                showError("الرجاء إضافة مفتاح Gemini API الخاص بك في الكود لتفعيل هذه الميزة.");
+                return false;
+            }
+            return true;
         }
     </script>
 </body>
