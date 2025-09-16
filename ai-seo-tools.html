@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أداة تحسين وإنشاء المحتوى مع Gemini</title>
+    <!-- استخدام Tailwind CSS للتصميم السريع والجميل -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* استخدام خط مناسب للغة العربية */
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f7fafc; /* bg-gray-100 */
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+        }
+        details > summary {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
+         details > summary:hover {
+            background-color: #f1f5f9; /* bg-slate-100 */
+         }
+        details[open] > summary {
+            background-color: #e2e8f0; /* bg-slate-200 */
+        }
+        /* لتنسيق كود JSON */
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-align: left;
+            direction: ltl;
+        }
+        /* --- START: CSS for Custom Toast Notification --- */
+        #toast-notification {
+            position: fixed;
+            bottom: -100px; /* Start off-screen */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #2d3748; /* bg-gray-800 */
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            z-index: 1000;
+            transition: bottom 0.5s ease-in-out;
+        }
+        #toast-notification.show {
+            bottom: 20px; /* Slide in */
+        }
+        /* --- END: CSS for Custom Toast Notification --- */
+        .result-card {
+            display: none; /* Hidden by default */
+        }
+        .result-card.visible {
+            display: block; /* Shown when there are results */
+        }
+
+        /* --- START: CSS for Full-Screen Modal --- */
+        #ai-seo-top-prompt-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 900;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+        }
+        #ai-seo-top-prompt-modal.visible {
+            display: flex; /* Show when active */
+        }
+        .modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            border-radius: 0.5rem;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            cursor: pointer;
+        }
+        /* --- END: CSS for Full-Screen Modal --- */
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="flex flex-col md:flex-row-reverse gap-6 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- ================== الشريط الجانبي للأدوات ================== -->
+        <aside id="sidebar" class="w-full md:w-1/3 lg:w-1/4 md:sticky md:top-8 self-start">
+            <div class="bg-white rounded-lg shadow-lg p-4 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-2 text-center border-b pb-2">مجموعة الأدوات</h2>
+
+                <!-- قسم تحليل المحتوى الأساسي -->
+                <details class="group">
+                    <summary class="font-bold text-gray-700">تحليل المحتوى الأساسي</summary>
+                    <div class="p-2 space-y-2">
+                        <button id="geminiBtn" class="w-full text-right bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <span id="gemini-btn-text">✨ توليد حزمة SEO (عنوان, وصف, Slug)</span>
+                            <span id="gemini-btn-loader" class="hidden w-full text-center">جاري الإنشاء...</span>
+                        </button>
+                        <button id="faqBtn" class="w-full text-right bg-gradient-to-r from-green-50 to-teal-50 text-green-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <span id="faq-btn-text">✨ توليد أسئلة شائعة</span>
+                            <span id="faq-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <button id="schemaBtn" class="w-full text-right bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <span id="schema-btn-text">✨ توليد بيانات Schema</span>
+                            <span id="schema-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                         <button id="auditBtn" class="w-full text-right bg-gradient-to-r from-slate-50 to-gray-50 text-slate-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-slate-500">
+                            <span id="audit-btn-text">✨ إجراء تدقيق للمحتوى</span>
+                            <span id="audit-btn-loader" class="hidden w-full text-center">جاري التدقيق...</span>
+                        </button>
+                        <button id="summaryBtn" class="w-full text-right bg-gradient-to-r from-cyan-50 to-blue-50 text-cyan-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            <span id="summary-btn-text">✨ توليد ملخص تنفيذي</span>
+                            <span id="summary-btn-loader" class="hidden w-full text-center">جاري التلخيص...</span>
+                        </button>
+                         <button id="eeatBtn" class="w-full text-right bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-gray-700">
+                            <span id="eeat-btn-text">✨ تحليل E-E-A-T</span>
+                            <span id="eeat-btn-loader" class="hidden w-full text-center">جاري التحليل...</span>
+                        </button>
+                    </div>
+                </details>
+                
+                <!-- قسم استراتيجية المحتوى -->
+                <details class="group">
+                    <summary class="font-bold text-gray-700">استراتيجية وتخطيط المحتوى</summary>
+                    <div class="p-2 space-y-4">
+                        <button id="keywordBtn" class="w-full text-right bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <span id="keyword-btn-text">✨ توليد استراتيجية الكلمات المفتاحية</span>
+                            <span id="keyword-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <button id="personaBtn" class="w-full text-right bg-gradient-to-r from-blue-50 to-teal-50 text-blue-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-700">
+                            <span id="persona-btn-text">✨ تحديد شخصية الجمهور</span>
+                            <span id="persona-btn-loader" class="hidden w-full text-center">جاري التحليل...</span>
+                        </button>
+                        <!-- موجز المحتوى -->
+                        <div class="space-y-2">
+                             <input type="text" id="briefTopicInput" placeholder="موضوع لموجز المحتوى..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                             <button id="briefBtn" class="w-full bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-indigo-600">
+                                <span id="brief-btn-text">توليد موجز المحتوى</span>
+                                <span id="brief-btn-loader" class="hidden">جاري التوليد...</span>
+                            </button>
+                        </div>
+                        <!-- مجموعات المواضيع -->
+                        <div class="space-y-2">
+                             <input type="text" id="clusterTopicInput" placeholder="موضوع لمجموعة المواضيع..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                             <button id="clusterBtn" class="w-full bg-purple-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-purple-600">
+                                <span id="cluster-btn-text">توليد مجموعة المواضيع</span>
+                                <span id="cluster-btn-loader" class="hidden">جاري التوليد...</span>
+                            </button>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- قسم إنشاء المحتوى -->
+                <details class="group">
+                    <summary class="font-bold text-gray-700">إنشاء وتدوير المحتوى</summary>
+                     <div class="p-2 space-y-4">
+                         <!-- توليد مسودة مقال -->
+                        <div class="space-y-2">
+                             <input type="text" id="draftTopicInput" placeholder="موضوع لمسودة المقال..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                             <button id="draftBtn" class="w-full bg-green-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-green-600">
+                                <span id="draft-btn-text">توليد مسودة مقال</span>
+                                <span id="draft-btn-loader" class="hidden">جاري التوليد...</span>
+                            </button>
+                        </div>
+                        <button id="repurposeBtn" class="w-full text-right bg-gradient-to-r from-orange-50 to-yellow-50 text-orange-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-orange-600">
+                            <span id="repurpose-btn-text">✨ أفكار لإعادة تدوير المحتوى</span>
+                            <span id="repurpose-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <button id="altTextBtn" class="w-full text-right bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-gray-400">
+                            <span id="alt-text-btn-text">✨ توليد نصوص بديلة للصور</span>
+                            <span id="alt-text-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                     </div>
+                </details>
+
+                <!-- قسم الترويج والتسويق -->
+                <details class="group">
+                    <summary class="font-bold text-gray-700">الترويج والتسويق</summary>
+                     <div class="p-2 space-y-2">
+                        <button id="socialBtn" class="w-full text-right bg-gradient-to-r from-pink-50 to-rose-50 text-pink-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-pink-500">
+                            <span id="social-btn-text">✨ توليد منشورات تواصل اجتماعي</span>
+                            <span id="social-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <button id="videoBtn" class="w-full text-right bg-gradient-to-r from-red-50 to-orange-50 text-red-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <span id="video-btn-text">✨ توليد أفكار فيديو قصير</span>
+                            <span id="video-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <button id="youtubeSeoBtn" class="w-full text-right bg-gradient-to-r from-red-100 to-red-200 text-red-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-red-600">
+                            <span id="youtube-seo-btn-text">✨ توليد SEO لفيديو يوتيوب</span>
+                            <span id="youtube-seo-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <button id="emailBtn" class="w-full text-right bg-gradient-to-r from-teal-50 to-cyan-50 text-teal-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-teal-600">
+                            <span id="email-btn-text">✨ توليد مسودة بريد إلكتروني</span>
+                            <span id="email-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                     </div>
+                </details>
+                
+                <!-- قسم الأدوات الاستراتيجية المتقدمة -->
+                <details class="group">
+                    <summary class="font-bold text-gray-700">أدوات استراتيجية متقدمة</summary>
+                     <div class="p-2 space-y-4">
+                        <!-- تحليل المنافسين -->
+                        <div class="space-y-2 p-2 border rounded-lg">
+                            <p class="text-sm font-semibold text-gray-600">تحليل المنافسين وفجوات المحتوى</p>
+                            <input type="url" id="competitorUrl1" placeholder="رابط المنافس الأول (مطلوب)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <input type="url" id="competitorUrl2" placeholder="رابط المنافس الثاني (اختياري)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <input type="url" id="competitorUrl3" placeholder="رابط المنافس الثالث (اختياري)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <input type="url" id="competitorUrl4" placeholder="رابط المنافس الرابع (اختياري)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <button id="competitorBtn" class="w-full bg-red-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-red-600">
+                                <span id="competitor-btn-text">تحليل المنافسين</span>
+                                <span id="competitor-btn-loader" class="hidden">جاري التحليل...</span>
+                            </button>
+                         </div>
+                         <!-- استراتيجية 10x -->
+                         <div class="space-y-2 p-2 border rounded-lg">
+                             <p class="text-sm font-semibold text-gray-600">استراتيجية المحتوى الأفضل (10x)</p>
+                             <input type="url" id="tenXCompetitorUrl1" placeholder="رابط المنافس الأول (مطلوب)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                             <input type="url" id="tenXCompetitorUrl2" placeholder="رابط المنافس الثاني (اختياري)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                             <input type="url" id="tenXCompetitorUrl3" placeholder="رابط المنافس الثالث (اختياري)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                             <input type="url" id="tenXCompetitorUrl4" placeholder="رابط المنافس الرابع (اختياري)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                             <button id="tenXBtn" class="w-full bg-purple-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-purple-700">
+                                <span id="tenX-btn-text">إنشاء موجز 10x</span>
+                                <span id="tenX-btn-loader" class="hidden">جاري الإنشاء...</span>
+                            </button>
+                         </div>
+                         <!-- تقويم المحتوى حسب رحلة العميل -->
+                         <div class="space-y-2 p-2 border rounded-lg">
+                            <p class="text-sm font-semibold text-gray-600">تقويم المحتوى حسب الهدف</p>
+                             <input type="text" id="journeyGoalInput" placeholder="أدخل هدفك (مثال: بيع منتج)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500">
+                             <button id="journeyBtn" class="w-full bg-pink-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-pink-700">
+                                <span id="journey-btn-text">إنشاء تقويم رحلة العميل</span>
+                                <span id="journey-btn-loader" class="hidden">جاري الإنشاء...</span>
+                            </button>
+                         </div>
+                          <!-- تحويل مشاكل الجمهور لمحتوى -->
+                         <div class="space-y-2 p-2 border rounded-lg">
+                            <p class="text-sm font-semibold text-gray-600">من مشكلة إلى محتوى</p>
+                             <textarea id="painPointInput" placeholder="أدخل مشكلة جمهورك..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500" rows="3"></textarea>
+                             <button id="painPointBtn" class="w-full bg-cyan-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-cyan-700">
+                                <span id="painPoint-btn-text">توليد أفكار محتوى</span>
+                                <span id="painPoint-btn-loader" class="hidden">جاري التوليد...</span>
+                            </button>
+                         </div>
+                         <button id="abTestBtn" class="w-full text-right bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <span id="ab-test-btn-text">✨ اقتراح عناوين لاختبار A/B</span>
+                            <span id="ab-test-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <button id="linkingBtn" class="w-full text-right bg-gradient-to-r from-lime-50 to-emerald-50 text-lime-800 font-bold px-4 py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-lime-500">
+                            <span id="linking-btn-text">✨ توليد استراتيجية الربط الداخلي</span>
+                            <span id="linking-btn-loader" class="hidden w-full text-center">جاري التوليد...</span>
+                        </button>
+                        <!-- أسئلة المنتج -->
+                         <div class="space-y-2">
+                            <textarea id="productDescInput" placeholder="وصف المنتج لتوليد أسئلة شائعة..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" rows="3"></textarea>
+                             <button id="productFaqBtn" class="w-full bg-teal-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-teal-600">
+                                <span id="product-faq-btn-text">توليد أسئلة المنتج</span>
+                                <span id="product-faq-btn-loader" class="hidden">جاري التوليد...</span>
+                            </button>
+                         </div>
+                     </div>
+                </details>
+
+                <!-- ================== قسم الأدوات الاستراتيجية المتقدمة جداً ================== -->
+                <details class="group" open>
+                    <summary class="font-bold text-gray-700">أدوات استراتيجية متقدمة plus</summary>
+                     <div class="p-2 space-y-4">
+                        <!-- مساعد تقليم المحتوى -->
+                        <div class="space-y-2 p-2 border rounded-lg">
+                            <p class="text-sm font-semibold text-gray-600">📝 مساعد تقليم المحتوى</p>
+                            <input type="url" id="pruningUrlInput" placeholder="أدخل رابط المقال القديم..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <button id="pruningBtn" class="w-full bg-red-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-red-600">
+                                <span id="pruning-btn-text">احصل على توصية</span>
+                                <span id="pruning-btn-loader" class="hidden">جاري التحليل...</span>
+                            </button>
+                        </div>
+                        <!-- مخطط الربط الداخلي الذكي -->
+                        <div class="space-y-2 p-2 border rounded-lg">
+                            <p class="text-sm font-semibold text-gray-600">🔗 مخطط الربط الداخلي الذكي</p>
+                            <textarea id="linkingUrlsInput" placeholder="ضع قائمة بروابط مقالاتك هنا (كل رابط في سطر)..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="4"></textarea>
+                            <button id="smartLinkingBtn" class="w-full bg-blue-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-600">
+                                <span id="smartLinking-btn-text">ابحث عن فرص الربط</span>
+                                <span id="smartLinking-btn-loader" class="hidden">جاري البحث...</span>
+                            </button>
+                        </div>
+                        <!-- أداة توسيع "أسئلة أخرى" -->
+                        <div class="space-y-2 p-2 border rounded-lg">
+                           <p class="text-sm font-semibold text-gray-600">❓ أداة توسيع "أسئلة أخرى"</p>
+                            <input type="text" id="paaKeywordInput" placeholder="أدخل كلمتك المفتاحية..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <button id="paaBtn" class="w-full bg-green-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-green-600">
+                               <span id="paa-btn-text">توسيع الأسئلة</span>
+                               <span id="paa-btn-loader" class="hidden">جاري التوسيع...</span>
+                           </button>
+                        </div>
+                         <!-- معزز إشارات E-E-A-T -->
+                        <div class="space-y-2 p-2 border rounded-lg">
+                           <p class="text-sm font-semibold text-gray-600">🛡️ معزز إشارات E-E-A-T</p>
+                           <button id="eeatBoosterBtn" class="w-full bg-gray-700 text-white font-bold px-4 py-2 rounded-lg hover:bg-gray-800">
+                              <span id="eeatBooster-btn-text">عزز إشارات E-E-A-T</span>
+                              <span id="eeatBooster-btn-loader" class="hidden">جاري التوليد...</span>
+                          </button>
+                        </div>
+                     </div>
+                </details>
+
+
+                 <!-- ================== AI SEO TOP PROMPT Tool ================== -->
+                <div class="mt-4 pt-4 border-t-2 border-dashed border-yellow-500">
+                    <button id="aiSeoTopPromptBtn" class="w-full text-center bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold px-4 py-4 rounded-lg hover:opacity-90 transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 ring-offset-2 transform hover:scale-105">
+                        <span id="aiSeoTopPrompt-btn-text">🚀 AI SEO TOP PROMPT 🚀</span>
+                        <span id="aiSeoTopPrompt-btn-loader" class="hidden w-full text-center">جاري التحليل الشامل...</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ================== المحتوى الرئيسي ================== -->
+        <main class="w-full md:w-2/3 lg:w-3/4 space-y-6">
+            <div class="bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800">مساحة العمل</h1>
+                    <p class="text-gray-500 mt-2">ابدأ بإدخال رابط أي صفحة لتحليل محتواها.</p>
+                </div>
+
+                <!-- قسم الإدخال -->
+                <div class="flex flex-col sm:flex-row gap-2 mb-6">
+                    <input type="url" id="urlInput" placeholder="https://example.com/page" class="flex-grow w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" required>
+                    <button id="generateBtn" class="w-full sm:w-auto bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <span id="btn-text">تحليل الرابط</span>
+                        <span id="btn-loader" class="hidden">جاري التحليل...</span>
+                    </button>
+                </div>
+
+                <!-- قسم النتائج الأساسية -->
+                <div id="results" class="space-y-6 hidden">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-700 mb-2">💡 العنوان المستخلص:</h3>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <p id="suggestedTitle" class="text-gray-800"></p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-700 mb-2">📝 الوصف المستخلص:</h3>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <p id="suggestedDesc" class="text-gray-800"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- حاويات النتائج (ستظهر كبطاقات منفصلة) -->
+            <div id="gemini-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">اقتراحات حزمة SEO</h2>
+                <div id="gemini-suggestions-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+            
+            <div id="faq-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">الأسئلة الشائعة المقترحة (FAQ)</h2>
+                <div id="faq-container" class="space-y-4"></div>
+            </div>
+
+            <div id="brief-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">موجز المحتوى المقترح</h2>
+                <div id="brief-container" class="space-y-6"></div>
+            </div>
+            
+            <div id="cluster-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">مجموعة المواضيع المقترحة</h2>
+                <div id="cluster-container" class="space-y-4"></div>
+            </div>
+            
+            <div id="schema-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">بيانات Schema المنظمة المقترحة (JSON-LD)</h2>
+                 <div class="bg-gray-900 text-white p-4 rounded-lg relative">
+                     <div onclick="copyToClipboard(this.nextElementSibling.innerText)" class="copy-btn" title="نسخ الكود">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-clipboard-check" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/><path d="M4 1.5H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h1z"/><path d="M4 1.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5"/></svg>
+                     </div>
+                     <pre><code id="schema-container"></code></pre>
+                 </div>
+            </div>
+            
+            <div id="social-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">منشورات التواصل الاجتماعي المقترحة</h2>
+                 <div id="social-container" class="space-y-6"></div>
+            </div>
+            
+            <div id="keyword-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">استراتيجية الكلمات المفتاحية المقترحة</h2>
+                 <div id="keyword-container" class="space-y-6"></div>
+            </div>
+
+            <div id="audit-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">تقرير تدقيق المحتوى</h2>
+                 <div id="audit-container" class="space-y-6"></div>
+            </div>
+            
+            <div id="video-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">أفكار فيديو قصير مقترحة</h2>
+                 <div id="video-container" class="space-y-6"></div>
+            </div>
+
+            <div id="linking-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">اقتراحات الربط الداخلي</h2>
+                 <div id="linking-container" class="space-y-6"></div>
+            </div>
+            
+            <div id="summary-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">الملخص التنفيذي</h2>
+                 <div id="summary-container" class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm relative"></div>
+            </div>
+
+            <div id="eeat-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">تقرير تحليل E-E-A-T</h2>
+                 <div id="eeat-container" class="space-y-6"></div>
+            </div>
+            
+            <div id="persona-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">تحليل شخصية الجمهور (Persona)</h2>
+                 <div id="persona-container" class="space-y-6"></div>
+            </div>
+
+            <div id="competitor-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">تقرير تحليل المنافسين</h2>
+                 <div id="competitor-container" class="space-y-6"></div>
+            </div>
+            
+            <div id="repurpose-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">أفكار لإعادة تدوير المحتوى</h2>
+                 <div id="repurpose-container" class="space-y-4"></div>
+            </div>
+
+            <div id="draft-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">مسودة المقال المقترحة</h2>
+                 <div id="draft-container" class="space-y-6"></div>
+            </div>
+            
+            <div id="youtube-seo-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">SEO لفيديو يوتيوب</h2>
+                 <div id="youtube-seo-container" class="space-y-6"></div>
+            </div>
+
+            <div id="email-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">مسودة البريد الإلكتروني المقترحة</h2>
+                 <div id="email-container" class="space-y-6"></div>
+            </div>
+
+            <div id="alt-text-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">اقتراحات النصوص البديلة للصور (Alt Text)</h2>
+                 <div id="alt-text-container" class="space-y-4"></div>
+            </div>
+
+            <div id="ab-test-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">اقتراحات عناوين لاختبار A/B</h2>
+                 <div id="ab-test-container" class="space-y-6"></div>
+            </div>
+
+            <!-- ================== حاويات نتائج الأدوات المتقدمة ================== -->
+            <div id="tenX-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">موجز المحتوى الأفضل (10x)</h2>
+                <div id="tenX-container" class="space-y-6"></div>
+            </div>
+            <div id="journey-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">تقويم المحتوى حسب رحلة العميل</h2>
+                <div id="journey-container" class="space-y-6"></div>
+            </div>
+             <div id="painPoint-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">أفكار محتوى لحل مشكلة الجمهور</h2>
+                <div id="painPoint-container" class="space-y-4"></div>
+            </div>
+             <div id="calendar-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">تقويم المحتوى الأسبوعي المقترح</h2>
+                <div id="calendar-container" class="space-y-4"></div>
+            </div>
+            <div id="product-faq-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">الأسئلة الشائعة للمنتج</h2>
+                <div id="product-faq-container" class="space-y-4"></div>
+            </div>
+
+            <!-- ================== حاويات نتائج الأدوات الاستراتيجية المتقدمة جداً ================== -->
+             <div id="pruning-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">📝 توصية تقليم المحتوى</h2>
+                <div id="pruning-container" class="space-y-4"></div>
+            </div>
+             <div id="smartLinking-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">🔗 فرص الربط الداخلي الذكية</h2>
+                <div id="smartLinking-container" class="space-y-4"></div>
+            </div>
+            <div id="paa-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">❓ شبكة "أسئلة أخرى يطرحها الآخرون"</h2>
+                <div id="paa-container" class="space-y-4"></div>
+            </div>
+            <div id="eeatBooster-results" class="result-card bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 border-b pb-2">🛡️ مقترحات لتعزيز إشارات E-E-A-T</h2>
+                <div id="eeatBooster-container" class="space-y-4"></div>
+            </div>
+
+
+            <!-- قسم الأخطاء -->
+            <div id="error-container" class="hidden mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
+                <strong class="font-bold">حدث خطأ!</strong>
+                <span id="error-message" class="block sm:inline"></span>
+            </div>
+
+            <footer class="text-center text-gray-500 mt-6 text-sm">
+                <p>ملاحظة: الأداة تستخدم واجهة API مخصصة لجلب المحتوى بشكل موثوق.</p>
+                <p class="mt-2">الإصدار 1.8 | آخر تحديث: 16 سبتمبر 2025</p>
+                <p class="mt-2"> by Mohamed Elgendy</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- ================== AI SEO TOP PROMPT Modal ================== -->
+    <div id="ai-seo-top-prompt-modal">
+        <div class="modal-content p-6 md:p-8">
+            <div class="modal-close-btn" onclick="ui.aiSeoTopPrompt.modal.classList.remove('visible')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="text-gray-500 hover:text-gray-800" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </div>
+            <div id="aiSeoTopPrompt-container" class="space-y-6">
+                <!-- Content will be injected by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- عنصر الإشعار المخصص -->
+    <div id="toast-notification">تم نسخ النص بنجاح!</div>
+
+    <script>
+        // --- عناصر الواجهة (Selectors) ---
+        const ui = {
+            urlInput: document.getElementById('urlInput'),
+            generateBtn: document.getElementById('generateBtn'),
+            resultsDiv: document.getElementById('results'),
+            errorContainer: document.getElementById('error-container'),
+            errorMessage: document.getElementById('error-message'),
+            suggestedTitle: document.getElementById('suggestedTitle'),
+            suggestedDesc: document.getElementById('suggestedDesc'),
+            
+            // --- Gemini Buttons & Result Containers ---
+            gemini: { btn: document.getElementById('geminiBtn'), container: document.getElementById('gemini-suggestions-container'), resultsDiv: document.getElementById('gemini-results') },
+            faq: { btn: document.getElementById('faqBtn'), container: document.getElementById('faq-container'), resultsDiv: document.getElementById('faq-results') },
+            schema: { btn: document.getElementById('schemaBtn'), container: document.getElementById('schema-container'), resultsDiv: document.getElementById('schema-results') },
+            social: { btn: document.getElementById('socialBtn'), container: document.getElementById('social-container'), resultsDiv: document.getElementById('social-results') },
+            keyword: { btn: document.getElementById('keywordBtn'), container: document.getElementById('keyword-container'), resultsDiv: document.getElementById('keyword-results') },
+            audit: { btn: document.getElementById('auditBtn'), container: document.getElementById('audit-container'), resultsDiv: document.getElementById('audit-results') },
+            video: { btn: document.getElementById('videoBtn'), container: document.getElementById('video-container'), resultsDiv: document.getElementById('video-results') },
+            linking: { btn: document.getElementById('linkingBtn'), container: document.getElementById('linking-container'), resultsDiv: document.getElementById('linking-results') },
+            summary: { btn: document.getElementById('summaryBtn'), container: document.getElementById('summary-container'), resultsDiv: document.getElementById('summary-results') },
+            eeat: { btn: document.getElementById('eeatBtn'), container: document.getElementById('eeat-container'), resultsDiv: document.getElementById('eeat-results') },
+            persona: { btn: document.getElementById('personaBtn'), container: document.getElementById('persona-container'), resultsDiv: document.getElementById('persona-results') },
+            repurpose: { btn: document.getElementById('repurposeBtn'), container: document.getElementById('repurpose-container'), resultsDiv: document.getElementById('repurpose-results') },
+            youtubeSeo: { btn: document.getElementById('youtubeSeoBtn'), container: document.getElementById('youtube-seo-container'), resultsDiv: document.getElementById('youtube-seo-results') },
+            email: { btn: document.getElementById('emailBtn'), container: document.getElementById('email-container'), resultsDiv: document.getElementById('email-results') },
+            altText: { btn: document.getElementById('altTextBtn'), container: document.getElementById('alt-text-container'), resultsDiv: document.getElementById('alt-text-results') },
+            abTest: { btn: document.getElementById('abTestBtn'), container: document.getElementById('ab-test-container'), resultsDiv: document.getElementById('ab-test-results') },
+
+            // --- Strategic Planning Tools ---
+            brief: { btn: document.getElementById('briefBtn'), input: document.getElementById('briefTopicInput'), container: document.getElementById('brief-container'), resultsDiv: document.getElementById('brief-results') },
+            cluster: { btn: document.getElementById('clusterBtn'), input: document.getElementById('clusterTopicInput'), container: document.getElementById('cluster-container'), resultsDiv: document.getElementById('cluster-results') },
+            draft: { btn: document.getElementById('draftBtn'), input: document.getElementById('draftTopicInput'), container: document.getElementById('draft-container'), resultsDiv: document.getElementById('draft-results') },
+            productFaq: { btn: document.getElementById('productFaqBtn'), input: document.getElementById('productDescInput'), container: document.getElementById('product-faq-container'), resultsDiv: document.getElementById('product-faq-results') },
+            
+            // --- Advanced Strategic Tools ---
+            competitor: { btn: document.getElementById('competitorBtn'), input1: document.getElementById('competitorUrl1'), input2: document.getElementById('competitorUrl2'), input3: document.getElementById('competitorUrl3'), input4: document.getElementById('competitorUrl4'), container: document.getElementById('competitor-container'), resultsDiv: document.getElementById('competitor-results') },
+            tenX: { btn: document.getElementById('tenXBtn'), input1: document.getElementById('tenXCompetitorUrl1'), input2: document.getElementById('tenXCompetitorUrl2'), input3: document.getElementById('tenXCompetitorUrl3'), input4: document.getElementById('tenXCompetitorUrl4'), container: document.getElementById('tenX-container'), resultsDiv: document.getElementById('tenX-results') },
+            journey: { btn: document.getElementById('journeyBtn'), input: document.getElementById('journeyGoalInput'), container: document.getElementById('journey-container'), resultsDiv: document.getElementById('journey-results') },
+            painPoint: { btn: document.getElementById('painPointBtn'), input: document.getElementById('painPointInput'), container: document.getElementById('painPoint-container'), resultsDiv: document.getElementById('painPoint-results') },
+            calendar: { btn: document.getElementById('calendarBtn'), input: document.getElementById('calendarTopicInput'), container: document.getElementById('calendar-container'), resultsDiv: document.getElementById('calendar-results') },
+
+            // --- Very Advanced Strategic Tools ---
+            pruning: { btn: document.getElementById('pruningBtn'), input: document.getElementById('pruningUrlInput'), container: document.getElementById('pruning-container'), resultsDiv: document.getElementById('pruning-results') },
+            smartLinking: { btn: document.getElementById('smartLinkingBtn'), input: document.getElementById('linkingUrlsInput'), container: document.getElementById('smartLinking-container'), resultsDiv: document.getElementById('smartLinking-results') },
+            paa: { btn: document.getElementById('paaBtn'), input: document.getElementById('paaKeywordInput'), container: document.getElementById('paa-container'), resultsDiv: document.getElementById('paa-results') },
+            eeatBooster: { btn: document.getElementById('eeatBoosterBtn'), container: document.getElementById('eeatBooster-container'), resultsDiv: document.getElementById('eeatBooster-results') },
+            serp: { btn: document.getElementById('serpBtn'), input: document.getElementById('serpKeywordInput'), container: document.getElementById('serp-container'), resultsDiv: document.getElementById('serp-results') },
+            refresh: { btn: document.getElementById('refreshBtn'), input: document.getElementById('refreshCompetitorUrl'), container: document.getElementById('refresh-container'), resultsDiv: document.getElementById('refresh-results') },
+            authority: { btn: document.getElementById('authorityBtn'), input: document.getElementById('authorityTopicInput'), container: document.getElementById('authority-container'), resultsDiv: document.getElementById('authority-results') },
+            audience: { btn: document.getElementById('audienceBtn'), input: document.getElementById('audienceUrlInput'), container: document.getElementById('audience-container'), resultsDiv: document.getElementById('audience-results') },
+
+
+            // --- AI SEO TOP PROMPT Tool ---
+            aiSeoTopPrompt: { btn: document.getElementById('aiSeoTopPromptBtn'), modal: document.getElementById('ai-seo-top-prompt-modal'), container: document.getElementById('aiSeoTopPrompt-container') }
+        };
+
+        let pageContentForGemini = '';
+
+        // --- معالجات الأحداث ---
+        ui.generateBtn.addEventListener('click', handleInitialAnalysis);
+        ui.aiSeoTopPrompt.btn.addEventListener('click', handleAiSeoTopPrompt);
+
+        // --- Universal handler for content-based Gemini features ---
+        const contentBasedFeatures = ['gemini', 'faq', 'schema', 'social', 'keyword', 'audit', 'video', 'linking', 'summary', 'eeat', 'persona', 'repurpose', 'youtubeSeo', 'email', 'altText', 'abTest', 'eeatBooster'];
+        contentBasedFeatures.forEach(name => {
+            if (ui[name] && ui[name].btn) {
+                ui[name].btn.addEventListener('click', () => handleGeminiRequest(name, () => pageContentForGemini, `callGeminiFor${capitalize(name)}`));
+            }
+        });
+        
+        // --- Handlers for input-based Gemini features ---
+        ui.brief.btn.addEventListener('click', () => handleGeminiRequest('brief', () => ui.brief.input.value, 'callGeminiForBrief', 'الرجاء إدخال موضوع لإنشاء الموجز.'));
+        ui.cluster.btn.addEventListener('click', () => handleGeminiRequest('cluster', () => ui.cluster.input.value, 'callGeminiForCluster', 'الرجاء إدخال موضوع لإنشاء مجموعة المواضيع.'));
+        ui.draft.btn.addEventListener('click', () => handleGeminiRequest('draft', () => ui.draft.input.value, 'callGeminiForDraft', 'الرجاء إدخال موضوع لتوليد مسودة المقال.'));
+        ui.productFaq.btn.addEventListener('click', () => handleGeminiRequest('productFaq', () => ui.productFaq.input.value, 'callGeminiForProductFaq', 'الرجاء إدخال وصف المنتج.'));
+        
+        // --- Handlers for Advanced Strategic Tools ---
+        ui.competitor.btn.addEventListener('click', handleCompetitorAnalysis);
+        ui.tenX.btn.addEventListener('click', handleTenXRequest);
+        ui.journey.btn.addEventListener('click', () => handleGeminiRequest('journey', () => ui.journey.input.value, 'callGeminiForJourney', 'الرجاء إدخال هدفك لإنشاء التقويم.'));
+        ui.painPoint.btn.addEventListener('click', () => handleGeminiRequest('painPoint', () => ui.painPoint.input.value, 'callGeminiForPainPoint', 'الرجاء إدخال مشكلة الجمهور.'));
+        if (ui.calendar && ui.calendar.btn) {
+            ui.calendar.btn.addEventListener('click', () => handleGeminiRequest('calendar', () => ui.calendar.input.value, 'callGeminiForCalendar', 'الرجاء إدخال موضوع لتوليد تقويم المحتوى.'));
+        }
+
+        // --- Handlers for Very Advanced Strategic Tools Plus ---
+        ui.pruning.btn.addEventListener('click', handleContentPruning);
+        ui.smartLinking.btn.addEventListener('click', handleSmartLinking);
+        ui.paa.btn.addEventListener('click', () => handleGeminiRequest('paa', () => ui.paa.input.value, 'callGeminiForPaa', 'الرجاء إدخال كلمة مفتاحية للبحث عن أسئلة.'));
+        
+        // FIX: Removed event listeners for elements that do not exist
+        // ui.serp.btn.addEventListener('click', () => handleGeminiRequest('serp', () => ui.serp.input.value, 'callGeminiForSerp', 'الرجاء إدخال كلمة مفتاحية.'));
+        // ui.refresh.btn.addEventListener('click', handleContentRefresh);
+        // ui.authority.btn.addEventListener('click', () => handleGeminiRequest('authority', () => ui.authority.input.value, 'callGeminiForAuthority', 'الرجاء إدخال موضوع رئيسي.'));
+        // ui.audience.btn.addEventListener('click', handleAudienceAnalysis);
+
+        
+        // --- Capitalize helper ---
+        function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+        async function fetchWithFallbacks(url) {
+            const encodedUrl = encodeURIComponent(url);
+            const proxies = [ `https://api.allorigins.win/raw?url=${encodedUrl}`, `https://corsproxy.io/?${encodedUrl}` ];
+            for (const proxyUrl of proxies) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                try {
+                    const response = await fetch(proxyUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (response.ok) {
+                        const text = await response.text();
+                        if (text) return text;
+                    }
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    console.warn(`Proxy failed: ${proxyUrl}`, error);
+                }
+            }
+            throw new Error("فشلت جميع خدمات جلب المحتوى. قد يكون الموقع محمياً أو يوجد مشكلة في الشبكة.");
+        }
+
+
+        function extractMainContent(doc) {
+            const selectorsToRemove = 'nav, footer, header, aside, script, style, .ad, [class*="sidebar"], [id*="sidebar"], [class*="comment"], [id*="comment"], [class*="footer"], [id*="footer"], [class*="promo"], [id*="promo"]';
+            doc.querySelectorAll(selectorsToRemove).forEach(el => el.remove());
+            const mainContentSelectors = [ 'article', '[role="main"]', 'main', '.post-content', '.entry-content', '[class*="article-body"]', '#content', '#main', '.post' ];
+            for (const selector of mainContentSelectors) {
+                const element = doc.querySelector(selector);
+                if (element && element.innerText.trim().length > 200) {
+                     return element.innerText.trim();
+                }
+            }
+            return doc.body ? doc.body.innerText.trim() : '';
+        }
+
+        async function handleInitialAnalysis() {
+            const url = ui.urlInput.value.trim();
+            if (!url || !url.startsWith('http')) {
+                showError('الرجاء إدخال رابط صحيح يبدأ بـ http أو https.');
+                return;
+            }
+            setLoading(true, 'generateBtn');
+            
+            document.querySelectorAll('.result-card').forEach(el => el.classList.remove('visible'));
+            ui.resultsDiv.classList.add('hidden');
+            ui.errorContainer.classList.add('hidden');
+
+            try {
+                const html = await fetchWithFallbacks(url);
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                pageContentForGemini = extractMainContent(doc);
+
+                if (!pageContentForGemini || pageContentForGemini.length < 150) {
+                    throw new Error('لم نتمكن من استخلاص محتوى كافٍ من الصفحة للتحليل. قد تكون الصفحة محمية أو تعتمد على JavaScript بشكل كبير.');
+                }
+                
+                const { mainHeading, finalDescription } = extractBasicInfo(doc);
+                ui.suggestedTitle.textContent = mainHeading;
+                ui.suggestedDesc.textContent = finalDescription;
+                ui.resultsDiv.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                showError(error.message || 'لم نتمكن من تحليل هذا الرابط.');
+            } finally {
+                setLoading(false, 'generateBtn');
+            }
+        }
+
+        async function handleGeminiRequest(name, getInput, apiCallName, validationErrorMsg) {
+            const input = getInput();
+            if (validationErrorMsg && !input) return showError(validationErrorMsg);
+            
+            const isContentIndependent = ['draft', 'calendar', 'cluster', 'brief', 'productFaq', 'journey', 'painPoint', 'paa', 'authority', 'serp'].includes(name);
+            if (!input && !pageContentForGemini && !isContentIndependent) {
+                 return showError('لا يوجد محتوى لتحليله. الرجاء إجراء التحليل الأساسي أولاً.');
+            }
+            
+            setLoading(true, ui[name].btn);
+            if(ui[name].resultsDiv) ui[name].resultsDiv.classList.remove('visible');
+            if(ui[name].container) ui[name].container.innerHTML = '';
+            
+            try {
+                const result = await window[apiCallName](input);
+                window[`display${capitalize(name)}Results`](result[Object.keys(result)[0]]);
+                if(ui[name].resultsDiv) ui[name].resultsDiv.classList.add('visible');
+            } catch (error) {
+                console.error(`Gemini API Error (${name}):`, error);
+                showError(`حدث خطأ أثناء تنفيذ الطلب. الرجاء المحاولة مرة أخرى. ${error.message}`);
+            } finally {
+                setLoading(false, ui[name].btn);
+            }
+        }
+        
+        async function handleContentPruning() {
+            const url = ui.pruning.input.value.trim();
+            if(!url) return showError('الرجاء إدخال رابط المقال القديم.');
+
+            setLoading(true, ui.pruning.btn);
+            ui.pruning.resultsDiv.classList.remove('visible');
+            ui.pruning.container.innerHTML = '';
+            
+            try {
+                const html = await fetchWithFallbacks(url);
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const content = extractMainContent(doc);
+                if (!content || content.length < 100) throw new Error('لم يتم العثور على محتوى كافٍ في الرابط.');
+
+                const { contentPruningDecision } = await callGeminiForPruning(content);
+                displayPruningResults(contentPruningDecision);
+                ui.pruning.resultsDiv.classList.add('visible');
+
+            } catch(error) {
+                console.error("Content Pruning Error:", error);
+                showError(`حدث خطأ أثناء تحليل المقال للتقليم. ${error.message}`);
+            } finally {
+                setLoading(false, ui.pruning.btn);
+            }
+        }
+
+        async function handleSmartLinking() {
+            const urlsText = ui.smartLinking.input.value.trim();
+            if (!pageContentForGemini) return showError('يرجى تحليل الرابط الرئيسي أولاً.');
+            if (!urlsText) return showError('يرجى إدخال قائمة بروابط المقالات الأخرى.');
+
+            setLoading(true, ui.smartLinking.btn);
+            ui.smartLinking.resultsDiv.classList.remove('visible');
+            ui.smartLinking.container.innerHTML = '';
+
+            try {
+                const urls = urlsText.split('\n').filter(u => u.trim() !== '');
+                if(urls.length === 0) return showError('قائمة الروابط فارغة.');
+                 
+                showToast(`جاري تحليل ${urls.length} مقالات... قد يستغرق هذا بعض الوقت.`);
+
+                const otherContents = await Promise.all(
+                    urls.map(async (url) => {
+                        const html = await fetchWithFallbacks(url);
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        return { url: url, content: extractMainContent(doc) };
+                    })
+                );
+
+                const { linkingOpportunities } = await callGeminiForSmartLinking(pageContentForGemini, otherContents);
+                displaySmartLinkingResults(linkingOpportunities);
+                ui.smartLinking.resultsDiv.classList.add('visible');
+
+            } catch (error) {
+                 console.error("Smart Linking Error:", error);
+                showError(`حدث خطأ أثناء البحث عن فرص الربط. ${error.message}`);
+            } finally {
+                 setLoading(false, ui.smartLinking.btn);
+            }
+        }
+
+
+        async function handleCompetitorAnalysis() {
+            const competitorUrls = [
+                ui.competitor.input1.value.trim(),
+                ui.competitor.input2.value.trim(),
+                ui.competitor.input3.value.trim(),
+                ui.competitor.input4.value.trim()
+            ].filter(url => url);
+
+            if (!pageContentForGemini || competitorUrls.length === 0) {
+                return showError('الرجاء إجراء تحليل أساسي وإدخال رابط منافس واحد على الأقل.');
+            }
+            setLoading(true, ui.competitor.btn);
+            ui.competitor.resultsDiv.classList.remove('visible');
+            ui.competitor.container.innerHTML = '';
+            try {
+                const competitorContents = await Promise.all(
+                    competitorUrls.map(async (url) => {
+                        const html = await fetchWithFallbacks(url);
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        return extractMainContent(doc);
+                    })
+                );
+
+                const { competitorAnalysis } = await callGeminiForCompetitor(pageContentForGemini, competitorContents);
+                displayCompetitorResults(competitorAnalysis);
+                ui.competitor.resultsDiv.classList.add('visible');
+            } catch (error) {
+                console.error("Gemini Competitor Analysis API Error:", error);
+                showError('حدث خطأ أثناء تحليل المنافسين. تأكد من صحة الروابط.');
+            } finally { setLoading(false, ui.competitor.btn); }
+        }
+        
+        async function handleTenXRequest() {
+            const competitorUrls = [
+                ui.tenX.input1.value.trim(),
+                ui.tenX.input2.value.trim(),
+                ui.tenX.input3.value.trim(),
+                ui.tenX.input4.value.trim()
+            ].filter(url => url);
+
+            if (!pageContentForGemini || competitorUrls.length === 0) {
+                return showError('الرجاء إجراء تحليل أساسي وإدخال رابط منافس واحد على الأقل.');
+            }
+            setLoading(true, ui.tenX.btn);
+            ui.tenX.resultsDiv.classList.remove('visible');
+            ui.tenX.container.innerHTML = '';
+            try {
+                 const competitorContents = await Promise.all(
+                    competitorUrls.map(async (url) => {
+                        const html = await fetchWithFallbacks(url);
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        return extractMainContent(doc);
+                    })
+                );
+
+                const { tenXBrief } = await callGeminiForTenX(pageContentForGemini, competitorContents);
+                displayTenXResults(tenXBrief);
+                ui.tenX.resultsDiv.classList.add('visible');
+            } catch (error) {
+                console.error("Gemini 10x Brief API Error:", error);
+                showError('حدث خطأ أثناء إنشاء موجز 10x. تأكد من صحة الرابط.');
+            } finally { setLoading(false, ui.tenX.btn); }
+        }
+
+        async function handleAiSeoTopPrompt() {
+            const competitorUrls = [
+                ui.competitor.input1.value.trim(),
+                ui.competitor.input2.value.trim(),
+                ui.competitor.input3.value.trim(),
+                ui.competitor.input4.value.trim()
+            ].filter(url => url);
+             if (!pageContentForGemini || competitorUrls.length === 0) {
+                return showError('لتشغيل هذه الأداة، يرجى تحليل رابطك أولاً ثم إدخال رابط منافس واحد على الأقل في قسم "تحليل المنافسين".');
+            }
+            setLoading(true, ui.aiSeoTopPrompt.btn);
+            ui.aiSeoTopPrompt.modal.classList.add('visible');
+            ui.aiSeoTopPrompt.container.innerHTML = `<div class="text-center p-8"><p class="text-lg">جاري إجراء التحليل الشامل وتوليد الـ Prompt النهائي...</p></div>`;
+
+            try {
+                const competitorContents = await Promise.all(
+                    competitorUrls.map(async (url) => {
+                        const html = await fetchWithFallbacks(url);
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        return extractMainContent(doc);
+                    })
+                );
+                
+                const { topPromptReport } = await callGeminiForAiSeoTopPrompt(pageContentForGemini, competitorContents);
+                displayAiSeoTopPromptResults(topPromptReport);
+
+            } catch (error) {
+                 console.error("AI SEO Top Prompt Error:", error);
+                 ui.aiSeoTopPrompt.container.innerHTML = `<div class="text-center p-8 text-red-600"><p>حدث خطأ فادح أثناء التحليل الشامل. ${error.message}</p></div>`;
+            } finally {
+                setLoading(false, ui.aiSeoTopPrompt.btn);
+            }
+        }
+        
+        async function handleWriteArticleFromPrompt(prompt) {
+            const writeButton = document.getElementById('write-article-btn');
+            const articleContainer = document.getElementById('final-article-container');
+            if (!writeButton || !articleContainer) return;
+
+            setLoading(true, writeButton);
+            articleContainer.innerHTML = '<p>جاري كتابة المقال...</p>';
+            
+            try {
+                const { article } = await callGeminiForFinalArticle(prompt);
+                articleContainer.innerHTML = `<div class="prose max-w-none">${article.replace(/\n/g, '<br>')}</div>`;
+            } catch(error) {
+                articleContainer.innerHTML = `<p class="text-red-600">فشل في كتابة المقال: ${error.message}</p>`;
+            } finally {
+                 setLoading(false, writeButton);
+            }
+        }
+        
+        async function handleContentRefresh() {
+            const competitorUrl = ui.refresh.input.value.trim();
+            if (!pageContentForGemini || !competitorUrl) {
+                return showError('يرجى تحليل رابطك القديم أولاً ثم إدخال رابط منافس حديث.');
+            }
+            setLoading(true, ui.refresh.btn);
+            ui.refresh.resultsDiv.classList.remove('visible');
+            ui.refresh.container.innerHTML = '';
+            try {
+                const html = await fetchWithFallbacks(competitorUrl);
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const competitorContent = extractMainContent(doc);
+                const { refreshBrief } = await callGeminiForRefresh(pageContentForGemini, competitorContent);
+                displayRefreshResults(refreshBrief);
+                ui.refresh.resultsDiv.classList.add('visible');
+            } catch (error) {
+                console.error("Content Refresh Error:", error);
+                showError(`حدث خطأ أثناء إنشاء خطة التحديث. ${error.message}`);
+            } finally { setLoading(false, ui.refresh.btn); }
+        }
+        
+        async function handleAudienceAnalysis() {
+            const audienceUrl = ui.audience.input.value.trim();
+            if (!audienceUrl) return showError('يرجى إدخال رابط لتحليل لغة الجمهور.');
+            setLoading(true, ui.audience.btn);
+            ui.audience.resultsDiv.classList.remove('visible');
+            ui.audience.container.innerHTML = '';
+            try {
+                const html = await fetchWithFallbacks(audienceUrl);
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const audienceContent = extractMainContent(doc);
+                if (!audienceContent || audienceContent.length < 100) {
+                     throw new Error('لم يتم العثور على محتوى كافٍ في الرابط المدخل.');
+                }
+                const { audienceVoice } = await callGeminiForAudience(audienceContent);
+                displayAudienceResults(audienceVoice);
+                ui.audience.resultsDiv.classList.add('visible');
+            } catch (error) {
+                console.error("Audience Analysis Error:", error);
+                showError(`حدث خطأ أثناء تحليل لغة الجمهور. ${error.message}`);
+            } finally { setLoading(false, ui.audience.btn); }
+        }
+
+
+        function extractBasicInfo(doc) {
+            const pageTitle = doc.querySelector('title')?.innerText.trim() || 'لا يوجد عنوان';
+            const mainHeading = doc.querySelector('h1')?.innerText.trim() || pageTitle;
+            let description = doc.querySelector('meta[name="description"]')?.getAttribute('content')?.trim();
+            if (!description || description.length < 50) {
+                const paragraphs = Array.from(doc.querySelectorAll('p'));
+                const firstLongPara = paragraphs.find(p => p.innerText.trim().length > 50);
+                if (firstLongPara) description = firstLongPara.innerText.trim();
+            }
+            return { mainHeading, finalDescription: description || 'لم يتم العثور على وصف مناسب في الصفحة.' };
+        }
+        
+        async function callGeminiAPI(prompt, isTextOnly = false) {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt.prompt }] }]
+            };
+            
+            if (!isTextOnly) {
+                payload.generationConfig = { responseMimeType: "application/json", responseSchema: prompt.schema };
+            }
+
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`API request failed: ${errorBody}`);
+            }
+            const result = await response.json();
+            const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!jsonText) throw new Error("Invalid response structure from Gemini API.");
+            
+            return isTextOnly ? { article: jsonText } : JSON.parse(jsonText);
+        }
+        
+        function getPrompt(type, text, keywords = '') {
+            const maxLength = 12000;
+            const truncatedText = text.length > maxLength ? text.substring(0, maxLength) : text;
+            const baseText = `محتوى الصفحة:\n"${truncatedText}"`;
+            const prompts = {
+                gemini: { 
+                    prompt: `أنت خبير SEO وكتابة محتوى. بالاعتماد على المحتوى التالي، قم بإنشاء 3 اقتراحات لحزمة SEO. لكل اقتراح، قدم: "title", "description", "tags" (قائمة من 5-7 كلمات), و "urlSlug".\n${baseText}`, 
+                    schema: { type: "OBJECT", properties: { suggestions: { type: "ARRAY", items: { type: "OBJECT", properties: { title: { type: "STRING" }, description: { type: "STRING" }, tags: { type: "ARRAY", items: { type: "STRING" } }, urlSlug: { type: "STRING" } } } } } }
+                },
+                faq: { prompt: `أنت خبير SEO. بالاعتماد على المحتوى التالي، قم بإنشاء قائمة من 3-5 أسئلة شائعة مع إجابات موجزة.\n${baseText}`, schema: { type: "OBJECT", properties: { faqs: { type: "ARRAY", items: { type: "OBJECT", properties: { question: { type: "STRING" }, answer: { type: "STRING" } } } } } } },
+                brief: { prompt: `أنت استراتيجي محتوى. قم بإنشاء موجز محتوى مفصل لمقال حول الموضوع التالي: "${keywords}". يجب أن يتضمن: الجمهور المستهدف، الكلمات المفتاحية، هيكل المقال، واقتراحات للربط الداخلي.`, schema: { type: "OBJECT", properties: { contentBrief: { type: "OBJECT", properties: { targetAudience: { type: "STRING" }, keywords: { type: "OBJECT", properties: { primary: { type: "ARRAY", items: { type: "STRING" } }, secondary: { type: "ARRAY", items: { type: "STRING" } } } }, outline: { type: "ARRAY", items: { type: "OBJECT", properties: { heading: { type: "STRING" }, subpoints: { type: "ARRAY", items: { type: "STRING" } } } } }, internalLinking: { type: "ARRAY", items: { type: "STRING" } } } } } } },
+                schema: { prompt: `أنت خبير SEO تقني. بالاعتماد على المحتوى التالي، حدد أنسب نوع Schema (مثل Article, FAQPage) وقم بإنشاء كود JSON-LD صالح.\n${baseText}`, schema: { type: "OBJECT", properties: { schemaScript: { type: "STRING" } } } },
+                social: { prompt: `أنت مدير وسائل تواصل اجتماعي. بالاعتماد على المحتوى التالي، قم بإنشاء 3 منشورات للترويج على منصات مختلفة.\n${baseText}`, schema: { type: "OBJECT", properties: { socialPosts: { type: "ARRAY", items: { type: "OBJECT", properties: { platform: { type: "STRING" }, post: { type: "STRING" } } } } } } },
+                keyword: { prompt: `أنت خبير SEO. بالاعتماد على المحتوى التالي، قم بإنشاء استراتيجية للكلمات المفتاحية تتضمن 3-5 كلمات رئيسية مع نية البحث واقتراحات لكلمات طويلة الذيل.\n${baseText}`, schema: { type: "OBJECT", properties: { keywordStrategy: { type: "ARRAY", items: { type: "OBJECT", properties: { keyword: { type: "STRING" }, intent: { type: "STRING" }, longTail: { type: "ARRAY", items: { type: "STRING" } } } } } } } },
+                audit: { prompt: `أنت مدقق محتوى. قم بتحليل المحتوى التالي وقدم تقريرًا يتضمن: نبرة الصوت، المشاعر، مستوى القراءة، و3-4 نصائح للتحسين.\n${baseText}`, schema: { type: "OBJECT", properties: { contentAudit: { type: "OBJECT", properties: { toneOfVoice: { type: "STRING" }, sentiment: { type: "STRING" }, readability: { type: "STRING" }, suggestions: { type: "ARRAY", items: { type: "STRING" } } } } } } },
+                video: { prompt: `أنت منتج محتوى فيديو. بالاعتماد على المحتوى التالي، قم بإنشاء فكرة لسيناريو فيديو قصير (أقل من 60 ثانية) يتضمن: خطاف، 3-4 مشاهد، ودعوة لاتخاذ إجراء.\n${baseText}`, schema: { type: "OBJECT", properties: { videoScript: { type: "OBJECT", properties: { hook: { type: "STRING" }, scenes: { type: "ARRAY", items: { type: "STRING" } }, cta: { type: "STRING" } } } } } },
+                linking: { prompt: `أنت خبير SEO. بالاعتماد على المحتوى التالي، حدد 3-5 عبارات رئيسية تصلح كنص رابط واقترح وجهة رابط داخلية مناسبة لكل منها.\n${baseText}`, schema: { type: "OBJECT", properties: { internalLinks: { type: "ARRAY", items: { type: "OBJECT", properties: { anchorText: { type: "STRING" }, suggestedLink: { type: "STRING" } } } } } } },
+                summary: { prompt: `أنت محلل أعمال. بالاعتماد على المحتوى التالي، قم بكتابة ملخص تنفيذي لا يتجاوز 3-4 جمل.\n${baseText}`, schema: { type: "OBJECT", properties: { summary: { type: "STRING" } } } },
+                eeat: { prompt: `أنت خبير SEO متخصص في E-E-A-T. قم بتقييم المحتوى التالي لكل معيار (الخبرة، الخبرة التخصصية، السلطة، الموثوقية) وقدم درجة من 5، شرح، واقتراح للتحسين.\n${baseText}`, schema: { type: "OBJECT", properties: { eeatAnalysis: { type: "OBJECT", properties: { experience: { type: "OBJECT", properties: { score: { type: "INTEGER" }, explanation: { type: "STRING" }, suggestion: { type: "STRING" } } }, expertise: { type: "OBJECT", properties: { score: { type: "INTEGER" }, explanation: { type: "STRING" }, suggestion: { type: "STRING" } } }, authoritativeness: { type: "OBJECT", properties: { score: { type: "INTEGER" }, explanation: { type: "STRING" }, suggestion: { type: "STRING" } } }, trustworthiness: { type: "OBJECT", properties: { score: { type: "INTEGER" }, explanation: { type: "STRING" }, suggestion: { type: "STRING" } } } } } } } },
+                cluster: { prompt: `أنت استراتيجي محتوى. بالاعتماد على الموضوع الرئيسي التالي: "${keywords}"، قم بإنشاء مجموعة مواضيع من 5-7 أفكار لمقالات فرعية.\n`, schema: { type: "OBJECT", properties: { topicClusters: { type: "ARRAY", items: { type: "OBJECT", properties: { topic: { type: "STRING" }, description: { type: "STRING" } } } } } } },
+                persona: { prompt: `أنت باحث تسويقي. بالاعتماد على المحتوى التالي، قم بإنشاء ملف شخصي للجمهور المستهدف يتضمن: اسم، ديموغرافيا، أهداف، نقاط ألم، وقنوات تواصل.\n${baseText}`, schema: { type: "OBJECT", properties: { audiencePersona: { type: "OBJECT", properties: { personaName: { type: "STRING" }, demographics: { type: "STRING" }, goals: { type: "ARRAY", items: { type: "STRING" } }, painPoints: { type: "ARRAY", items: { type: "STRING" } }, communicationChannels: { type: "ARRAY", items: { type: "STRING" } } } } } } },
+                competitor: { prompt: `أنت محلل SEO استراتيجي. قم بتحليل مقارن بين محتواي ومحتوى المنافسين. يجب أن يتضمن التحليل: نقاط القوة، نقاط الضعف، فجوات الكلمات المفتاحية، و3 نصائح للتفوق.\n\nمحتوى صفحتي:\n"${text}"\n\n${keywords}`, schema: { type: "OBJECT", properties: { competitorAnalysis: { type: "OBJECT", properties: { strengths: { type: "ARRAY", items: { type: "STRING" } }, weaknesses: { type: "ARRAY", items: { type: "STRING" } }, keywordGaps: { type: "ARRAY", items: { type: "OBJECT", properties: { keyword: {type: "STRING"}, explanation: {type: "STRING"}} } }, recommendations: { type: "ARRAY", items: { type: "STRING" } } } } } } },
+                repurpose: { prompt: `أنت استراتيجي محتوى. بالاعتماد على المحتوى التالي، اقترح 3-4 طرق لإعادة تدويره إلى صيغ أخرى (مثل: انفوجرافيك، بودكاست).\n${baseText}`, schema: { type: "OBJECT", properties: { repurposingIdeas: { type: "ARRAY", items: { type: "OBJECT", properties: { format: { type: "STRING" }, idea: { type: "STRING" } } } } } } },
+                draft: { prompt: `أنت كاتب محتوى. قم بكتابة مسودة مقال متكاملة حول الموضوع التالي: "${keywords}". يجب أن تتضمن: عنوان، مقدمة، 3-5 فقرات، وخاتمة.`, schema: { type: "OBJECT", properties: { articleDraft: { type: "OBJECT", properties: { title: { type: "STRING" }, introduction: { type: "STRING" }, sections: { type: "ARRAY", items: { type: "OBJECT", properties: { heading: { type: "STRING" }, paragraph: { type: "STRING" } } } }, conclusion: { type: "STRING" } } } } } },
+                calendar: { prompt: `أنت مدير محتوى. قم بإنشاء خطة محتوى أسبوعية حول الموضوع الرئيسي التالي: "${keywords}". لكل يوم، اقترح صيغة وفكرة.\n`, schema: { type: "OBJECT", properties: { contentCalendar: { type: "ARRAY", items: { type: "OBJECT", properties: { day: { type: "STRING" }, format: { type: "STRING" }, idea: { type: "STRING" } } } } } } },
+                productFaq: { prompt: `أنت خبير تجارة إلكترونية. بالاعتماد على وصف المنتج التالي، قم بإنشاء 3-5 أسئلة شائعة مع إجاباتها.\n\nوصف المنتج:\n"${text}"`, schema: { type: "OBJECT", properties: { productFaqs: { type: "ARRAY", items: { type: "OBJECT", properties: { question: { type: "STRING" }, answer: { type: "STRING" } } } } } } },
+                youtubeSeo: { prompt: `أنت خبير SEO يوتيوب. بالاعتماد على المحتوى التالي، قم بإنشاء "title", "description", و "tags" لفيديو يوتيوب.\n${baseText}`, schema: { type: "OBJECT", properties: { youtubeSeo: { type: "OBJECT", properties: { title: { type: "STRING" }, description: { type: "STRING" }, tags: { type: "ARRAY", items: { type: "STRING" } } } } } } },
+                email: { prompt: `أنت مسوق عبر البريد الإلكتروني. بالاعتماد على المحتوى التالي، قم بكتابة مسودة رسالة بريدية ترويجية تتضمن "subject" و "body".\n${baseText}`, schema: { type: "OBJECT", properties: { emailDraft: { type: "OBJECT", properties: { subject: { type: "STRING" }, body: { type: "STRING" } } } } } },
+                altText: { prompt: `أنت خبير SEO و Accessibility. بالاعتماد على المحتوى التالي، تخيل 3-4 صور ذات صلة واكتب لكل منها وصف ونص بديل (Alt Text).\n${baseText}`, schema: { type: "OBJECT", properties: { altTexts: { type: "ARRAY", items: { type: "OBJECT", properties: { description: { type: "STRING" }, altText: { type: "STRING" } } } } } } },
+                abTest: { prompt: `أنت خبير CRO. بالاعتماد على المحتوى التالي، قم بإنشاء 3 اقتراحات لعناوين رئيسية لاختبار A/B. لكل اقتراح، قدم "headline", "angle", و "hypothesis".\n${baseText}`, schema: { type: "OBJECT", properties: { abTestHeadlines: { type: "ARRAY", items: { type: "OBJECT", properties: { headline: { type: "STRING" }, angle: { type: "STRING" }, hypothesis: { type: "STRING" } } } } } } },
+                tenX: { prompt: `أنت استراتيجي محتوى SEO خبير. هدفي هو إنشاء محتوى أفضل 10 مرات من منافسي. قم بتحليل محتواي ومحتوى المنافسين، ثم أنشئ موجز محتوى مفصل يتضمن: عنوان مقترح يتفوق على المنافسين، هيكل مقال مفصل يدمج أفضل ما في المحتويات ويضيف قيمة فريدة، واقتراحات لإضافة بيانات أو اقتباسات لزيادة السلطة.\n\nمحتواي:\n"${text}"\n\n${keywords}`, schema: { type: "OBJECT", properties: { tenXBrief: { type: "OBJECT", properties: { suggestedTitle: {type: "STRING"}, detailedOutline: { type: "ARRAY", items: { type: "OBJECT", properties: { heading: {type: "STRING"}, subpoints: {type: "ARRAY", items: {type: "STRING"}}} } }, valueAddSuggestions: { type: "ARRAY", items: { type: "STRING" } } } } } } },
+                journey: { prompt: `أنت استراتيجي تسويق بالمحتوى. هدفي التجاري هو: "${text}". قم بإنشاء خطة محتوى لمدة 3 أيام، بحيث يمثل كل يوم مرحلة من مراحل رحلة العميل (وعي، تقييم، قرار). لكل يوم، اقترح فكرة محتوى وصيغة مناسبة.\n`, schema: { type: "OBJECT", properties: { journeyCalendar: { type: "ARRAY", items: { type: "OBJECT", properties: { stage: {type: "STRING"}, idea: {type: "STRING"}, format: {type: "STRING"}} } } } } },
+                painPoint: { prompt: `أنت خبير في إنشاء المحتوى الذي يحل المشاكل. جمهورنا المستهدف يواجه هذه المشكلة: "${text}". قم بتوليد 4 أفكار محتوى متنوعة (مقالات، فيديوهات، أدوات) تعالج هذه المشكلة مباشرة.\n`, schema: { type: "OBJECT", properties: { contentIdeas: { type: "ARRAY", items: { type: "OBJECT", properties: { title: {type: "STRING"}, format: {type: "STRING"}, description: {type: "STRING"}} } } } } },
+                aiSeoTopPrompt: {
+                    prompt: `أنت استراتيجي SEO عالمي وخبير في كتابة الأوامر للذكاء الاصطناعي. مهمتك هي إنشاء "Prompt" نهائي لكتابة مقال يتصدر نتائج البحث. قم أولاً بتحليل شامل لمحتواي ومحتوى المنافسين، ثم بناءً على هذا التحليل، قم بتوليد التقرير والـ Prompt النهائي.\n\nمحتوى صفحتي:\n"${text}"\n\n${keywords}`,
+                    schema: {
+                        type: "OBJECT",
+                        properties: {
+                            topPromptReport: {
+                                type: "OBJECT",
+                                properties: {
+                                    analysisReport: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            summary: { type: "STRING", description: "ملخص موجز لتحليلك المقارن." },
+                                            keywordGaps: { type: "ARRAY", items: { type: "STRING" }, description: "أهم الكلمات المفتاحية التي يغطيها المنافسون ولا يغطيها المحتوى الحالي." },
+                                            eeatImprovements: { type: "ARRAY", items: { type: "STRING" }, description: "أهم التحسينات المقترحة لـ E-E-A-T." }
+                                        }
+                                    },
+                                    masterPrompt: { type: "STRING", description: "الـ Prompt النهائي المفصل لكتابة المقال الأفضل." }
+                                }
+                            }
+                        }
+                    }
+                },
+                finalArticle: {
+                    prompt: text 
+                },
+                pruning: {
+                    prompt: `أنت استراتيجي محتوى وخبير SEO. قم بتحليل المقال التالي وقدم توصية واضحة للتعامل معه. يجب أن تكون التوصية واحدة من ثلاث: 'Prune' (تقليم وحذف)، 'Improve' (تحسين وتحديث)، أو 'Consolidate' (دمج). قدم 'reason' (سبب واضح لتوصيتك) و 'nextSteps' (خطوات عملية تالية).\n\nمحتوى المقال:\n"${text}"`,
+                    schema: { type: "OBJECT", properties: { contentPruningDecision: { type: "OBJECT", properties: { recommendation: { type: "STRING" }, reason: { type: "STRING" }, nextSteps: { type: "ARRAY", items: { type: "STRING" } } } } } }
+                },
+                smartLinking: {
+                    prompt: `أنت خبير SEO متخصص في الربط الداخلي. هدفي هو تقوية صفحتي الرئيسية التي محتواها كالتالي:\n\n${text}\n\nالآن، قم بتحليل محتوى المقالات الأخرى في موقعي، ولكل مقال، حدد أفضل جملة تصلح كنص رابط (Anchor Text) للربط بصفحتي الرئيسية.\n\n${keywords}`,
+                    schema: { type: "OBJECT", properties: { linkingOpportunities: { type: "ARRAY", items: { type: "OBJECT", properties: { sourceArticleUrl: { type: "STRING" }, anchorText: { type: "STRING" }, surroundingContext: { type: "STRING" } } } } } }
+                },
+                paa: {
+                    prompt: `أنت أداة SEO تحاكي قسم "People Also Ask" في جوجل. للكلمة المفتاحية '${text}', قم بتوليد شجرة من الأسئلة.`,
+                    schema: { type: "OBJECT", properties: { paaTree: { type: "ARRAY", items: { type: "OBJECT", properties: { mainQuestion: { type: "STRING" }, subQuestions: { type: "ARRAY", items: { type: "STRING" } } } } } } }
+                },
+                eeatBooster: {
+                    prompt: `أنت خبير E-E-A-T. حلل المحتوى التالي وقدم قائمة من "الإشارات" العملية التي يمكن إضافتها لتعزيز الثقة والسلطة.\n\n${baseText}`,
+                    schema: { type: "OBJECT", properties: { eeatSignals: { type: "ARRAY", items: { type: "OBJECT", properties: { signalType: { type: "STRING" }, suggestedText: { type: "STRING" }, explanation: { type: "STRING" } } } } } }
+                },
+                serp: {
+                    prompt: `أنت خبير SEO. للكلمة المفتاحية '${text}', قم بمحاكاة صفحة نتائج بحث جوجل النموذجية. حدد 5 فرص ظهور بارزة وقدم نصيحة عملية لكل فرصة.`,
+                    schema: { type: "OBJECT", properties: { serpOpportunities: { type: "ARRAY", items: { type: "OBJECT", properties: { feature: { type: "STRING" }, opportunity: { type: "STRING" }, actionableTip: { type: "STRING" } } } } } }
+                },
+                refresh: {
+                    prompt: `أنت خبير في تحديث المحتوى. بالاعتماد على محتوى مقالي القديم ومحتوى مقال منافس حديث، قم بإنشاء 'موجز تحديث'.\n\nمقالي القديم:\n"${text}"\n\nالمنافس الحديث:\n"${keywords}"`,
+                    schema: { type: "OBJECT", properties: { refreshBrief: { type: "OBJECT", properties: { outdatedInfo: { type: "ARRAY", items: { type: "STRING" } }, newQuestions: { type: "ARRAY", items: { type: "STRING" } }, newSubheadings: { type: "ARRAY", items: { type: "STRING" } } } } } }
+                },
+                authority: {
+                    prompt: `أنت خبير في بناء السلطة الموضوعية. للموضوع الرئيسي '${text}', قم بإنشاء خريطة سلطة موضوعية.`,
+                    schema: { type: "OBJECT", properties: { authorityMap: { type: "OBJECT", properties: { pillarPageIdea: { type: "OBJECT", properties: { title: { type: "STRING" }, description: { type: "STRING" } } }, clusterTopics: { type: "ARRAY", items: { type: "OBJECT", properties: { title: { type: "STRING" }, description: { type: "STRING" }, linkingStrategy: { type: "STRING" } } } } } } } }
+                },
+                audience: {
+                    prompt: `أنت باحث تسويقي. قم بتحليل النص التالي الذي يمثل صوت الجمهور واستخلص المصطلحات الشائعة والأسئلة المتكررة والنبرة العامة.\n\nالنص:\n"${text}"`,
+                    schema: { type: "OBJECT", properties: { audienceVoice: { type: "OBJECT", properties: { commonTerms: { type: "ARRAY", items: { type: "STRING" } }, frequentQuestions: { type: "ARRAY", items: { type: "STRING" } }, overallTone: { type: "STRING" } } } } }
+                }
+            };
+            return prompts[type];
+        }
+
+        // --- API Call Functions ---
+        async function callGeminiForGemini(pageText) { return callGeminiAPI(getPrompt('gemini', pageText)); }
+        async function callGeminiForFaq(pageText) { return callGeminiAPI(getPrompt('faq', pageText)); }
+        async function callGeminiForSchema(pageText) { return callGeminiAPI(getPrompt('schema', pageText)); }
+        async function callGeminiForSocial(pageText) { return callGeminiAPI(getPrompt('social', pageText)); }
+        async function callGeminiForKeyword(pageText) { return callGeminiAPI(getPrompt('keyword', pageText)); }
+        async function callGeminiForAudit(pageText) { return callGeminiAPI(getPrompt('audit', pageText)); }
+        async function callGeminiForVideo(pageText) { return callGeminiAPI(getPrompt('video', pageText)); }
+        async function callGeminiForLinking(pageText) { return callGeminiAPI(getPrompt('linking', pageText)); }
+        async function callGeminiForSummary(pageText) { return callGeminiAPI(getPrompt('summary', pageText)); }
+        async function callGeminiForEeat(pageText) { return callGeminiAPI(getPrompt('eeat', pageText)); }
+        async function callGeminiForPersona(pageText) { return callGeminiAPI(getPrompt('persona', pageText)); }
+        async function callGeminiForRepurpose(pageText) { return callGeminiAPI(getPrompt('repurpose', pageText)); }
+        async function callGeminiForYoutubeSeo(pageText) { return callGeminiAPI(getPrompt('youtubeSeo', pageText)); }
+        async function callGeminiForEmail(pageText) { return callGeminiAPI(getPrompt('email', pageText)); }
+        async function callGeminiForAltText(pageText) { return callGeminiAPI(getPrompt('altText', pageText)); }
+        async function callGeminiForAbTest(pageText) { return callGeminiAPI(getPrompt('abTest', pageText)); }
+        async function callGeminiForBrief(topic) { return callGeminiAPI(getPrompt('brief', '', topic)); }
+        async function callGeminiForCluster(topic) { return callGeminiAPI(getPrompt('cluster', '', topic)); }
+        async function callGeminiForDraft(topic) { return callGeminiAPI(getPrompt('draft', '', topic)); }
+        async function callGeminiForCalendar(topic) { return callGeminiAPI(getPrompt('calendar', '', topic)); }
+        async function callGeminiForProductFaq(desc) { return callGeminiAPI(getPrompt('productFaq', desc)); }
+        async function callGeminiForCompetitor(userText, competitorTexts) { 
+            const competitorContentString = competitorTexts.map((content, i) => `محتوى المنافس ${i+1}:\n"${content}"`).join('\n\n');
+            return callGeminiAPI(getPrompt('competitor', userText, competitorContentString)); 
+        }
+        async function callGeminiForTenX(userText, competitorTexts) { 
+            const competitorContentString = competitorTexts.map((content, i) => `محتوى المنافس ${i+1}:\n"${content}"`).join('\n\n');
+            return callGeminiAPI(getPrompt('tenX', userText, competitorContentString)); 
+        }
+        async function callGeminiForJourney(goal) { return callGeminiAPI(getPrompt('journey', goal)); }
+        async function callGeminiForPainPoint(problem) { return callGeminiAPI(getPrompt('painPoint', problem)); }
+        async function callGeminiForAiSeoTopPrompt(userText, competitorTexts) {
+            const competitorContentString = competitorTexts.map((content, i) => `محتوى المنافس ${i + 1}:\n"${content}"`).join('\n\n');
+            return callGeminiAPI(getPrompt('aiSeoTopPrompt', userText, competitorContentString));
+        }
+        async function callGeminiForFinalArticle(prompt) {
+            return callGeminiAPI(getPrompt('finalArticle', prompt), true);
+        }
+        async function callGeminiForPruning(content) { return callGeminiAPI(getPrompt('pruning', content)); }
+        async function callGeminiForSmartLinking(userText, otherContents) { 
+            const otherContentString = otherContents.map((item, i) => `--- المقال ${i+1} (${item.url}) ---\n${item.content}`).join('\n\n');
+            return callGeminiAPI(getPrompt('smartLinking', userText, otherContentString)); 
+        }
+        async function callGeminiForPaa(keyword) { return callGeminiAPI(getPrompt('paa', keyword)); }
+        async function callGeminiForEeatBooster(pageText) { return callGeminiAPI(getPrompt('eeatBooster', pageText)); }
+        async function callGeminiForSerp(keyword) { return callGeminiAPI(getPrompt('serp', keyword)); }
+        async function callGeminiForRefresh(userText, competitorText) { return callGeminiAPI(getPrompt('refresh', userText, competitorText)); }
+        async function callGeminiForAuthority(topic) { return callGeminiAPI(getPrompt('authority', topic)); }
+        async function callGeminiForAudience(audienceText) { return callGeminiAPI(getPrompt('audience', audienceText)); }
+
+        
+        // --- Display Functions ---
+        function displayGeminiResults(suggestions) {
+            suggestions.forEach(suggestion => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm relative';
+                card.innerHTML = `
+                    <div onclick="copyToClipboard(this.parentElement.innerText)" class="copy-btn" title="نسخ الكل">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h1z"/><path d="M4 1.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5M4 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5"/></svg>
+                    </div>
+                    <h4 class="font-bold text-indigo-700 mb-2">${suggestion.title}</h4>
+                    <p class="text-sm text-gray-600 mb-3">${suggestion.description}</p>
+                    <div class="border-t pt-2">
+                        <p class="text-xs text-gray-500 font-semibold mb-1">الرابط المقترح:</p>
+                        <p class="text-xs text-indigo-600 bg-indigo-50 p-1 rounded">${suggestion.urlSlug}</p>
+                    </div>
+                    <div class="border-t pt-2 mt-2">
+                         <p class="text-xs text-gray-500 font-semibold mb-2">الوسوم المقترحة:</p>
+                         <div class="flex flex-wrap gap-2">
+                            ${suggestion.tags.map(tag => `<span class="bg-gray-200 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${tag}</span>`).join('')}
+                         </div>
+                    </div>
+                `;
+                ui.gemini.container.appendChild(card);
+            });
+        }
+
+        function displayFaqResults(faqs) {
+            faqs.forEach(faq => {
+                const details = document.createElement('details');
+                details.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
+                details.innerHTML = `<summary class="font-bold text-teal-700">${faq.question}</summary><p class="mt-2 text-sm text-gray-600 pr-4">${faq.answer}</p>`;
+                ui.faq.container.appendChild(details);
+            });
+        }
+
+        function displaySchemaResults(schemaScript) {
+            try {
+                const formattedScript = JSON.stringify(JSON.parse(schemaScript), null, 2);
+                ui.schema.container.textContent = formattedScript;
+            } catch (e) {
+                ui.schema.container.textContent = schemaScript;
+            }
+        }
+
+        function displaySocialResults(socialPosts) {
+            socialPosts.forEach(post => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm relative';
+                card.innerHTML = `<div onclick="copyToClipboard(this.parentElement.innerText)" class="copy-btn" title="نسخ الكل"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h1z"/><path d="M4 1.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5M4 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5"/></svg></div><h4 class="font-bold text-rose-700 mb-2">منشور مقترح لـ ${post.platform}</h4><p class="text-sm text-gray-600 whitespace-pre-line">${post.post}</p>`;
+                ui.social.container.appendChild(card);
+            });
+        }
+
+        function displayKeywordResults(keywordStrategy) {
+            keywordStrategy.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `
+                    <h4 class="font-bold text-amber-700 text-lg">${item.keyword}</h4>
+                    <p class="text-sm text-gray-600 mb-2"><span class="font-semibold">نية البحث:</span> ${item.intent}</p>
+                    <p class="text-sm text-gray-600 font-semibold">اقتراحات كلمات طويلة الذيل:</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600">
+                        ${item.longTail.map(lt => `<li>${lt}</li>`).join('')}
+                    </ul>
+                `;
+                ui.keyword.container.appendChild(card);
+            });
+        }
+
+        function displayAuditResults(contentAudit) {
+            ui.audit.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700">نبرة الصوت</h4>
+                    <p class="text-sm text-gray-600">${contentAudit.toneOfVoice}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700">تحليل المشاعر</h4>
+                    <p class="text-sm text-gray-600">${contentAudit.sentiment}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700">مستوى القراءة</h4>
+                    <p class="text-sm text-gray-600">${contentAudit.readability}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700">اقتراحات للتحسين</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        ${contentAudit.suggestions.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function displayVideoResults(videoScript) {
+            ui.video.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">الخطاف (Hook)</h4>
+                    <p class="text-sm text-gray-600 italic">"${videoScript.hook}"</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">المشاهد</h4>
+                    <div class="space-y-2 mt-2">
+                        ${videoScript.scenes.map((scene, index) => `
+                            <div class="p-2 border-r-2 border-red-200">
+                                <p class="font-semibold text-sm">المشهد ${index + 1}:</p>
+                                <p class="text-sm text-gray-600">${scene}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">الدعوة لاتخاذ إجراء (CTA)</h4>
+                    <p class="text-sm text-gray-600">${videoScript.cta}</p>
+                </div>
+            `;
+        }
+
+        function displayLinkingResults(internalLinks) {
+            internalLinks.forEach(link => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `
+                    <p class="text-sm text-gray-600">النص المقترح للربط (Anchor Text):</p>
+                    <h4 class="font-bold text-lime-700 text-lg mb-2">"${link.anchorText}"</h4>
+                    <p class="text-sm text-gray-600">اربطه بصفحة حول:</p>
+                    <p class="font-semibold text-sm text-emerald-700">${link.suggestedLink}</p>
+                `;
+                ui.linking.container.appendChild(card);
+            });
+        }
+
+        function displaySummaryResults(summary) {
+            ui.summary.container.innerHTML = `<p class="text-sm text-gray-800">${summary}</p>`;
+        }
+
+        function displayBriefResults(contentBrief) {
+            ui.brief.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-indigo-700">الجمهور المستهدف</h4>
+                    <p class="text-sm text-gray-600">${contentBrief.targetAudience}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-indigo-700">الكلمات المفتاحية</h4>
+                    <p class="text-sm text-gray-600 font-semibold">رئيسية:</p>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        ${contentBrief.keywords.primary.map(kw => `<span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${kw}</span>`).join('')}
+                    </div>
+                    <p class="text-sm text-gray-600 font-semibold mt-2">ثانوية:</p>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                         ${contentBrief.keywords.secondary.map(kw => `<span class="bg-gray-200 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${kw}</span>`).join('')}
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-indigo-700">هيكل المقال المقترح</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-2 mt-2">
+                        ${contentBrief.outline.map(item => `<li><span class="font-semibold">${item.heading}</span><ul class="list-disc list-inside pr-4">${item.subpoints.map(sp => `<li>${sp}</li>`).join('')}</ul></li>`).join('')}
+                    </ul>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-indigo-700">اقتراحات للربط الداخلي</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        ${contentBrief.internalLinking.map(link => `<li>${link}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function displayEeatResults(eeatAnalysis) {
+            const createSection = (title, data) => `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-gray-700">${title} (التقييم: ${data.score}/5)</h4>
+                    <p class="text-sm text-gray-600 mt-1">${data.explanation}</p>
+                    <p class="text-sm text-gray-800 mt-2 p-2 bg-green-100 border-r-2 border-green-500"><span class="font-semibold">اقتراح:</span> ${data.suggestion}</p>
+                </div>
+            `;
+            ui.eeat.container.innerHTML = `
+                ${createSection('الخبرة (Experience)', eeatAnalysis.experience)}
+                ${createSection('الخبرة التخصصية (Expertise)', eeatAnalysis.expertise)}
+                ${createSection('السلطة (Authoritativeness)', eeatAnalysis.authoritativeness)}
+                ${createSection('الموثوقية (Trustworthiness)', eeatAnalysis.trustworthiness)}
+            `;
+        }
+
+        function displayClusterResults(topicClusters) {
+            topicClusters.forEach(cluster => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-purple-700">${cluster.topic}</h4><p class="text-sm text-gray-600 mt-1">${cluster.description}</p>`;
+                ui.cluster.container.appendChild(card);
+            });
+        }
+
+        function displayPersonaResults(audiencePersona) {
+            ui.persona.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="font-bold text-blue-700 text-xl text-center mb-4">${audiencePersona.personaName}</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">البيانات الديموغرافية:</h4>
+                            <p class="text-sm text-gray-600">${audiencePersona.demographics}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">الأهداف:</h4>
+                            <ul class="list-disc list-inside text-sm text-gray-600">${audiencePersona.goals.map(g => `<li>${g}</li>`).join('')}</ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">نقاط الألم:</h4>
+                            <ul class="list-disc list-inside text-sm text-gray-600">${audiencePersona.painPoints.map(p => `<li>${p}</li>`).join('')}</ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">قنوات التواصل:</h4>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                ${audiencePersona.communicationChannels.map(c => `<span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${c}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayCompetitorResults(competitorAnalysis) {
+             ui.competitor.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">نقاط القوة (في صفحتك)</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${competitorAnalysis.strengths.map(s => `<li>${s}</li>`).join('')}</ul>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">نقاط الضعف (في صفحتك)</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${competitorAnalysis.weaknesses.map(w => `<li>${w}</li>`).join('')}</ul>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">فجوات الكلمات المفتاحية (ما يغطيه المنافسون)</h4>
+                     <div class="space-y-2 mt-2">
+                        ${competitorAnalysis.keywordGaps.map(g => `<div class="p-2 border-r-2 border-red-200"><p class="font-semibold text-sm">${g.keyword}:</p><p class="text-sm text-gray-600">${g.explanation}</p></div>`).join('')}
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">توصيات للتفوق</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${competitorAnalysis.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+                </div>
+            `;
+        }
+
+        function displayRepurposeResults(repurposingIdeas) {
+            repurposingIdeas.forEach(idea => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-orange-700">${idea.format}</h4><p class="text-sm text-gray-600 mt-1">${idea.idea}</p>`;
+                ui.repurpose.container.appendChild(card);
+            });
+        }
+
+        function displayDraftResults(articleDraft) {
+            ui.draft.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="font-bold text-green-700 text-2xl mb-4">${articleDraft.title}</h3>
+                    <div class="space-y-4">
+                        <div><h4 class="font-semibold text-gray-800 text-lg">المقدمة</h4><p class="text-sm text-gray-600 mt-1">${articleDraft.introduction}</p></div>
+                        ${articleDraft.sections.map(section => `<div><h4 class="font-semibold text-gray-800 text-lg">${section.heading}</h4><p class="text-sm text-gray-600 mt-1">${section.paragraph}</p></div>`).join('')}
+                        <div><h4 class="font-semibold text-gray-800 text-lg">الخاتمة</h4><p class="text-sm text-gray-600 mt-1">${articleDraft.conclusion}</p></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayCalendarResults(contentCalendar) {
+            contentCalendar.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-pink-700">${item.day}</h4><p class="text-sm text-gray-800 mt-1"><span class="font-semibold">الصيغة:</span> ${item.format}</p><p class="text-sm text-gray-600 mt-1"><span class="font-semibold">الفكرة:</span> ${item.idea}</p>`;
+                ui.calendar.container.appendChild(card);
+            });
+        }
+        
+        function displayTenXResults(tenXBrief) {
+            ui.tenX.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-purple-700">العنوان المقترح (أفضل من المنافس)</h4>
+                    <p class="text-sm text-gray-600">${tenXBrief.suggestedTitle}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-purple-700">هيكل المقال المقترح</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-2 mt-2">
+                        ${tenXBrief.detailedOutline.map(item => `<li><span class="font-semibold">${item.heading}</span><ul class="list-disc list-inside pr-4">${item.subpoints.map(sp => `<li>${sp}</li>`).join('')}</ul></li>`).join('')}
+                    </ul>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-purple-700">اقتراحات لإضافة قيمة فريدة</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        ${tenXBrief.valueAddSuggestions.map(link => `<li>${link}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function displayJourneyResults(journeyCalendar) {
+             journeyCalendar.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-pink-700">مرحلة ${item.stage}</h4><p class="text-sm text-gray-800 mt-1"><span class="font-semibold">الصيغة:</span> ${item.format}</p><p class="text-sm text-gray-600 mt-1"><span class="font-semibold">الفكرة:</span> ${item.idea}</p>`;
+                ui.journey.container.appendChild(card);
+            });
+        }
+
+        function displayPainPointResults(contentIdeas) {
+            contentIdeas.forEach(idea => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-cyan-700">${idea.title} <span class="text-xs bg-cyan-100 text-cyan-800 font-medium px-2 py-0.5 rounded-full">${idea.format}</span></h4><p class="text-sm text-gray-600 mt-1">${idea.description}</p>`;
+                ui.painPoint.container.appendChild(card);
+            });
+        }
+
+
+        function displayProductFaqResults(productFaqs) {
+            productFaqs.forEach(faq => {
+                const details = document.createElement('details');
+                details.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
+                details.innerHTML = `<summary class="font-bold text-teal-700">${faq.question}</summary><p class="mt-2 text-sm text-gray-600 pr-4">${faq.answer}</p>`;
+                ui.productFaq.container.appendChild(details);
+            });
+        }
+
+        function displayYoutubeSeoResults(youtubeSeo) {
+            ui.youtubeSeo.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">العنوان المقترح</h4><p class="text-sm text-gray-600">${youtubeSeo.title}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">الوصف المقترح</h4><p class="text-sm text-gray-600 whitespace-pre-line">${youtubeSeo.description}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">العلامات (Tags) المقترحة</h4>
+                    <div class="flex flex-wrap gap-2 mt-1">${youtubeSeo.tags.map(tag => `<span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
+                </div>
+            `;
+        }
+
+        function displayEmailResults(emailDraft) {
+            ui.email.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-teal-700">سطر الموضوع</h4><p class="text-sm text-gray-600">${emailDraft.subject}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-teal-700">نص الرسالة</h4><p class="text-sm text-gray-600 whitespace-pre-line">${emailDraft.body}</p>
+                </div>
+            `;
+        }
+
+        function displayAltTextResults(altTexts) {
+            altTexts.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-gray-700">وصف الصورة المتخيلة</h4><p class="text-sm text-gray-600 italic mt-1">"${item.description}"</p><p class="text-sm text-gray-800 mt-2 p-2 bg-blue-100 border-r-2 border-blue-500"><span class="font-semibold">النص البديل المقترح (Alt Text):</span> ${item.altText}</p>`;
+                ui.altText.container.appendChild(card);
+            });
+        }
+
+        function displayAbTestResults(abTestHeadlines) {
+            abTestHeadlines.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-indigo-700 text-lg">"${item.headline}"</h4><p class="text-sm text-gray-800 mt-2"><span class="font-semibold">الزاوية:</span> ${item.angle}</p><p class="text-sm text-gray-600 mt-1"><span class="font-semibold">الفرضية:</span> ${item.hypothesis}</p>`;
+                ui.abTest.container.appendChild(card);
+            });
+        }
+
+        function displayAiSeoTopPromptResults(report) {
+            const { analysisReport, masterPrompt } = report;
+            ui.aiSeoTopPrompt.container.innerHTML = `
+                <h2 class="text-2xl font-bold text-gray-800 text-center">تقرير التحليل والـ Prompt النهائي</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <!-- قسم التحليل -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-bold text-gray-700 border-b pb-2">ملخص التحليل المقارن</h3>
+                        <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">${analysisReport.summary}</p>
+                        
+                        <h3 class="text-lg font-bold text-gray-700 border-b pb-2 mt-4">أهم فجوات الكلمات المفتاحية</h3>
+                        <ul class="list-disc list-inside text-sm text-gray-600 bg-gray-50 p-3 rounded-lg space-y-1">${analysisReport.keywordGaps.map(g => `<li>${g}</li>`).join('')}</ul>
+
+                        <h3 class="text-lg font-bold text-gray-700 border-b pb-2 mt-4">أهم تحسينات E-E-A-T</h3>
+                         <ul class="list-disc list-inside text-sm text-gray-600 bg-gray-50 p-3 rounded-lg space-y-1">${analysisReport.eeatImprovements.map(i => `<li>${i}</li>`).join('')}</ul>
+                    </div>
+                    <!-- قسم الـ Prompt -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-bold text-gray-700 border-b pb-2">الـ Prompt النهائي المقترح</h3>
+                        <textarea id="master-prompt-textarea" readonly class="w-full h-64 p-3 border rounded-lg bg-gray-50 text-sm">${masterPrompt}</textarea>
+                        <div class="flex gap-4">
+                             <button onclick="copyToClipboard(document.getElementById('master-prompt-textarea').value)" class="flex-1 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">نسخ الـ Prompt</button>
+                             <button id="write-article-btn" class="flex-1 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">
+                                 <span id="write-article-btn-text">اكتب المقال بهذا الـ Prompt</span>
+                                 <span id="write-article-btn-loader" class="hidden">جاري الكتابة...</span>
+                             </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- حاوية المقال النهائي -->
+                <div id="final-article-container" class="mt-6 pt-6 border-t"></div>
+            `;
+            // Add event listener to the newly created button
+            document.getElementById('write-article-btn').addEventListener('click', () => handleWriteArticleFromPrompt(masterPrompt));
+        }
+
+        function displayPruningResults(decision) {
+            const icons = {
+                'Prune': '🗑️',
+                'Improve': '🔄',
+                'Consolidate': '🔗'
+            };
+            ui.pruning.container.innerHTML = `
+                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700 text-xl text-center">${icons[decision.recommendation] || '📝'} ${decision.recommendation}</h4>
+                    <p class="text-sm text-gray-600 mt-2"><span class="font-semibold">السبب:</span> ${decision.reason}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-red-700">الخطوات التالية المقترحة</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${decision.nextSteps.map(s => `<li>${s}</li>`).join('')}</ul>
+                </div>
+            `;
+        }
+
+        function displaySmartLinkingResults(opportunities) {
+            if (opportunities.length === 0) {
+                 ui.smartLinking.container.innerHTML = `<p class="text-center text-gray-500">لم يتم العثور على فرص ربط واضحة.</p>`;
+                 return;
+            }
+            opportunities.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<p class="text-sm text-gray-600">في مقالك:</p><a href="${item.sourceArticleUrl}" target="_blank" class="text-xs text-blue-500 hover:underline truncate block">${item.sourceArticleUrl}</a><p class="mt-2 text-sm text-gray-800 p-2 bg-blue-100 border-r-2 border-blue-500">"<span class="font-semibold">${item.anchorText}</span>"</p><p class="text-xs text-gray-500 mt-1">السياق: ...${item.surroundingContext}...</p>`;
+                ui.smartLinking.container.appendChild(card);
+            });
+        }
+        
+        function displayPaaResults(paaTree) {
+             paaTree.forEach(item => {
+                const details = document.createElement('details');
+                details.className = 'bg-gray-50 p-2 rounded-lg border border-gray-200';
+                details.innerHTML = `
+                    <summary class="font-bold text-green-700">${item.mainQuestion}</summary>
+                    <ul class="list-disc list-inside text-sm text-gray-600 pr-6 mt-2 space-y-1">
+                        ${item.subQuestions.map(sq => `<li>${sq}</li>`).join('')}
+                    </ul>
+                `;
+                ui.paa.container.appendChild(details);
+            });
+        }
+
+        function displayEeatBoosterResults(eeatSignals) {
+            const icons = { 'Experience': '📝', 'Expertise': '🎓', 'Authoritativeness': '👑', 'Trustworthiness': '🛡️' };
+            eeatSignals.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-gray-700">${icons[item.signalType] || '⭐'} ${item.signalType}</h4><p class="text-sm text-gray-600 mt-1">${item.explanation}</p><p class="text-sm text-gray-800 mt-2 p-2 bg-gray-100 border-r-2 border-gray-500"><span class="font-semibold">النص المقترح:</span> ${item.suggestedText}</p>`;
+                ui.eeatBooster.container.appendChild(card);
+            });
+        }
+
+        function displaySerpResults(serpOpportunities) {
+            serpOpportunities.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-sky-700">${item.feature}</h4><p class="text-sm text-gray-600 mt-1">${item.opportunity}</p><p class="text-sm text-gray-800 mt-2 p-2 bg-sky-100 border-r-2 border-sky-500"><span class="font-semibold">نصيحة عملية:</span> ${item.actionableTip}</p>`;
+                ui.serp.container.appendChild(card);
+            });
+        }
+
+        function displayRefreshResults(refreshBrief) {
+            ui.refresh.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-emerald-700">معلومات قديمة يجب تحديثها</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${refreshBrief.outdatedInfo.map(i => `<li>${i}</li>`).join('')}</ul>
+                </div>
+                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-emerald-700">أسئلة جديدة يطرحها الجمهور</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${refreshBrief.newQuestions.map(q => `<li>${q}</li>`).join('')}</ul>
+                </div>
+                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-emerald-700">عناوين فرعية جديدة مقترحة</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${refreshBrief.newSubheadings.map(h => `<li>${h}</li>`).join('')}</ul>
+                </div>
+            `;
+        }
+
+        function displayAuthorityResults(authorityMap) {
+            const { pillarPageIdea, clusterTopics } = authorityMap;
+            let html = `
+                <div class="text-center p-4 border-2 border-dashed border-rose-500 rounded-lg">
+                    <h3 class="font-bold text-rose-800 text-lg">المقال الرئيسي (Pillar Page)</h3>
+                    <h4 class="font-semibold text-rose-600">${pillarPageIdea.title}</h4>
+                    <p class="text-xs text-gray-500 mt-1">${pillarPageIdea.description}</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            `;
+            clusterTopics.forEach(topic => {
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h4 class="font-bold text-rose-700">${topic.title}</h4>
+                        <p class="text-sm text-gray-600 mt-1">${topic.description}</p>
+                        <p class="text-xs text-gray-800 mt-2 p-2 bg-rose-100"><span class="font-semibold">استراتيجية الربط:</span> ${topic.linkingStrategy}</p>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            ui.authority.container.innerHTML = html;
+        }
+
+        function displayAudienceResults(audienceVoice) {
+            ui.audience.container.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700">النبرة العامة للجمهور</h4>
+                    <p class="text-sm text-gray-600">${audienceVoice.overallTone}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700">أهم المصطلحات الشائعة</h4>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        ${audienceVoice.commonTerms.map(t => `<span class="bg-slate-200 text-slate-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${t}</span>`).join('')}
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-slate-700">الأسئلة الأكثر تكرارًا</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1 mt-2">${audienceVoice.frequentQuestions.map(q => `<li>${q}</li>`).join('')}</ul>
+                </div>
+            `;
+        }
+
+
+        // --- Helper Functions ---
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => { 
+                showToast(); 
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showError('فشل نسخ النص.');
+            });
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast-notification');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function setLoading(isLoading, btnElement) {
+            if (typeof btnElement === 'string') {
+                btnElement = document.getElementById(btnElement);
+            }
+            if (btnElement) {
+                 btnElement.disabled = isLoading;
+                 const textSpan = btnElement.querySelector('span[id*="-text"]');
+                 const loaderSpan = btnElement.querySelector('span[id*="-loader"]');
+                 
+                 if (textSpan) {
+                    textSpan.classList.toggle('hidden', isLoading);
+                 }
+                 if (loaderSpan) {
+                    loaderSpan.classList.toggle('hidden', !isLoading);
+                 }
+            }
+        }
+
+        function showError(message) {
+            ui.errorMessage.textContent = message;
+            ui.errorContainer.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
+
