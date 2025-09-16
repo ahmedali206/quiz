@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة تصميم الإعلانات الاحترافية</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSZip for zipping files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai&family=Cairo:wght@700;900&family=IBM+Plex+Sans+Arabic:wght@400;700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Enable class-based dark mode
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'IBM Plex Sans Arabic', 'Tajawal', sans-serif;
+        }
+        .control-panel {
+            scrollbar-width: thin;
+            scrollbar-color: #4b5563 #1f2937;
+        }
+        .control-panel::-webkit-scrollbar { width: 8px; }
+        .control-panel::-webkit-scrollbar-track { background: #1f2937; }
+        .control-panel::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 10px; border: 2px solid #1f2937; }
+        
+        /* Accordion styles */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+         /* AI Suggestion styles */
+        .ai-suggestion {
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        .ai-suggestion:hover {
+            border-color: #34d399; /* emerald-400 */
+            background-color: #10B9811A; /* emerald-500 with opacity */
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #34d399;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white transition-colors duration-300">
+
+    <!-- Main container -->
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-gray-100 dark:bg-gray-800 p-4 shadow-md text-center z-20">
+            <h1 class="text-3xl font-bold text-emerald-500">منصة تصميم الإعلانات بالذكاء الاصطناعي</h1>
+            <p id="version-info" class="text-sm text-gray-500 dark:text-gray-400 mt-1">الإصدار 4.2 | </p>
+        </header>
+        
+        <!-- Content Area -->
+        <div class="flex flex-1 flex-col lg:flex-row overflow-hidden">
+        <!-- Control Panel -->
+        <aside class="w-full lg:w-[400px] bg-gray-100 dark:bg-gray-800 p-6 shadow-lg overflow-y-auto control-panel">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-emerald-500">لوحة التحكم</h1>
+                <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                    <svg id="theme-icon-light" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    <svg id="theme-icon-dark" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z"></path></svg>
+                </button>
+            </div>
+            
+            <div id="accordion-container" class="space-y-2">
+                <!-- Accordion Items will be injected here by JS -->
+            </div>
+
+            <div id="loading-indicator" class="hidden flex-col items-center justify-center mt-6">
+                <p class="mt-3 text-emerald-500">جاري ضغط الصور...</p>
+            </div>
+             <button id="regenerateBtn" class="w-full btn-primary mt-4">إعادة توليد التصاميم</button>
+             <button id="aiDesignBtn" class="w-full btn-secondary mt-2 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                <span>تحسين تلقائي (AI)</span>
+            </button>
+             <button id="aiResizeBtn" class="w-full btn-secondary mt-2 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                <span>إعادة تحجيم ذكية (AI)</span>
+            </button>
+        </aside>
+
+        <!-- Preview Area -->
+        <main class="flex-1 p-8 overflow-y-auto bg-gray-200 dark:bg-gray-900">
+            <div id="preview-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            </div>
+        </main>
+    </div>
+    
+    <!-- AI Copywriter Modal -->
+    <div id="ai-copy-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 scale-95 opacity-0">
+            <h3 id="ai-modal-title" class="text-xl font-bold mb-4">توليد نصوص بالذكاء الاصطناعي</h3>
+            <input type="text" id="ai-product-name" placeholder="ما هو منتجك أو خدمتك؟ (مثال: أحذية رياضية)" class="input-base">
+            <input type="text" id="ai-target-audience" placeholder="من هو جمهورك المستهدف؟ (مثال: الشباب الرياضي)" class="input-base mt-2">
+            <div id="ai-suggestions-loading" class="hidden mt-4 flex items-center justify-center gap-2 text-gray-500"><div class="spinner"></div><span>جاري التوليد...</span></div>
+            <div id="ai-suggestions-container" class="mt-4 space-y-2 max-h-60 overflow-y-auto"></div>
+            <div class="flex gap-2 mt-4">
+                <button id="ai-generate-copy-btn" class="btn-primary flex-1">توليد</button>
+                <button id="ai-close-modal-btn" class="btn-secondary flex-1">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+// --- UTILS & HELPERS ---
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => document.querySelectorAll(selector);
+
+// --- STATE MANAGEMENT ---
+let logoImage = null;
+let bgImage = null;
+let productImage = null;
+let productOverlayImage = null; // Image after BG removal
+let currentSizes = [];
+let currentAiCopyType = '';
+
+// --- PLATFORM SIZES DATABASE (EXPANDED) ---
+const platformSizes = {
+    google: [
+        { name: 'Medium Rectangle', width: 300, height: 250 }, { name: 'Large Rectangle', width: 336, height: 280 }, { name: 'Leaderboard', width: 728, height: 90 }, { name: 'Half Page', width: 300, height: 600 }, { name: 'Wide Skyscraper', width: 160, height: 600 }, { name: 'Mobile Leaderboard', width: 320, height: 50 }, { name: 'Large Mobile Banner', width: 320, height: 100 }, { name: 'Banner', width: 468, height: 60 }, { name: 'Skyscraper', width: 120, height: 600 }, { name: 'Portrait', width: 300, height: 1050 }, { name: 'Billboard', width: 970, height: 250 }, { name: 'Square', width: 250, height: 250 },
+    ],
+    meta: [ { name: 'Feed Ad (Square)', width: 1080, height: 1080 }, { name: 'Stories & Reels', width: 1080, height: 1920 }, { name: 'Feed Ad (Landscape)', width: 1200, height: 628 }, ],
+    twitter: [ { name: 'In-stream Photo', width: 1600, height: 900 }, { name: 'Website Card', width: 800, height: 418 }, ],
+    linkedin: [ { name: 'Sponsored Content', width: 1200, height: 627 }, { name: 'Carousel Ad', width: 1080, height: 1080 }, ],
+    custom: []
+};
+
+// --- UI SETUP ---
+const accordionData = [
+    { title: 'المشروع والمقاسات', content: `
+        <select id="platform" class="w-full input-base"> <option value="google">إعلانات جوجل</option> <option value="meta">فيسبوك وإنستغرام</option> <option value="twitter">تويتر (X)</option> <option value="linkedin">لينكد إن</option> <option value="custom">مقاسات مخصصة</option> </select>
+        <div id="custom-size-container" class="hidden mt-4 space-y-2"> <div class="flex gap-2"> <input type="number" id="customWidth" placeholder="العرض" class="w-1/2 input-base"> <input type="number" id="customHeight" placeholder="الارتفاع" class="w-1/2 input-base"> </div> <button id="addCustomSizeBtn" class="w-full btn-secondary">إضافة مقاس مخصص</button> </div>
+    `},
+    { title: 'المحتوى النصي (AI)', content: `
+        <div class="flex items-center justify-between"><label class="label-base">خيارات العنوان الرئيسي</label><button class="ai-btn" data-type="headline" title="اقتراح عناوين بالذكاء الاصطناعي">✨</button></div>
+        <input type="text" id="headline1" placeholder="العنوان 1 (أساسي)" value="تخفيضات هائلة تصل إلى 50%" class="input-base"> <input type="text" id="headline2" placeholder="العنوان 2 (اختياري)" class="input-base mt-2"> <input type="text" id="headline3" placeholder="العنوان 3 (اختياري)" class="input-base mt-2">
+        <hr class="border-gray-300 dark:border-gray-600 my-4">
+        <div class="flex items-center justify-between"><label class="label-base">خيارات الوصف</label><button class="ai-btn" data-type="description" title="اقتراح وصف بالذكاء الاصطناعي">✨</button></div>
+        <textarea id="description1" placeholder="الوصف 1 (أساسي)" class="input-base h-20">اكتشف مجموعتنا الجديدة من المنتجات العصرية والمميزة.</textarea> <textarea id="description2" placeholder="الوصف 2 (اختياري)" class="input-base h-20 mt-2"></textarea> <textarea id="description3" placeholder="الوصف 3 (اختياري)" class="input-base h-20 mt-2"></textarea>
+        <hr class="border-gray-300 dark:border-gray-600 my-4">
+        <div class="flex items-center justify-between"><label class="label-base">خيارات دعوة لاتخاذ إجراء (CTA)</label><button class="ai-btn" data-type="cta" title="اقتراح CTA بالذكاء الاصطناعي">✨</button></div>
+        <input type="text" id="cta1" placeholder="CTA 1 (أساسي)" value="تسوق الآن" class="input-base"> <input type="text" id="cta2" placeholder="CTA 2 (اختياري)" class="input-base mt-2"> <input type="text" id="cta3" placeholder="CTA 3 (اختياري)" class="input-base mt-2">
+    `},
+    { title: 'الأصول الرسومية (AI)', content: `
+        <label class="label-base">الشعار (Logo)</label> <input type="file" id="logo" accept="image/*" class="input-file"> <img id="logo-preview" src="#" class="hidden mt-2 max-h-20 mx-auto rounded-md bg-white p-1"/>
+        <hr class="border-gray-300 dark:border-gray-600 my-4">
+        <label class="label-base">صورة المنتج (لإزالة الخلفية)</label> <input type="file" id="productImage" accept="image/*" class="input-file">
+        <div id="product-image-controls" class="hidden mt-2"> <img id="product-image-preview" src="#" class="max-h-20 mx-auto rounded-md bg-white p-1"/> <button id="removeBgBtn" class="w-full btn-secondary mt-2 flex items-center justify-center gap-2">✨ إزالة الخلفية</button> <div id="remove-bg-loading" class="hidden mt-2 flex items-center justify-center gap-2 text-gray-500"><div class="spinner"></div><span>جاري المعالجة...</span></div> </div>
+        <hr class="border-gray-300 dark:border-gray-600 my-4">
+        <label class="label-base">صورة الخلفية (اختياري)</label> <input type="file" id="bgImage" accept="image/*" class="input-file">
+    `},
+    { title: 'تصميم الخلفية (AI)', content: `
+        <label class="label-base">نوع الخلفية</label> <select id="bgType" class="w-full input-base"> <option value="solid">لون ثابت</option> <option value="gradient">لون متدرج</option> <option value="image">صورة مرفوعة</option> <option value="ai-image">صورة بالذكاء الاصطناعي</option> </select>
+        <div id="solid-color-picker" class="mt-4"><label class="label-base">لون الخلفية</label><input type="color" id="bgColor" value="#111827" class="w-full h-10"></div>
+        <div id="gradient-color-picker" class="hidden mt-4 grid grid-cols-2 gap-4"> <div><label class="label-base">اللون 1</label><input type="color" id="gradientColor1" value="#8B5CF6" class="w-full h-10"></div> <div><label class="label-base">اللون 2</label><input type="color" id="gradientColor2" value="#EC4899" class="w-full h-10"></div> </div>
+        <div id="image-bg-controls" class="hidden mt-4 space-y-4"> <div><label class="label-base">شفافية الصورة: 100%</label><input type="range" id="bgOpacity" min="0" max="100" value="100" class="w-full"></div> <div><label class="label-base">فلتر لوني</label><input type="color" id="bgOverlayColor" value="#000000" class="w-full h-10"></div> <div><label class="label-base">شفافية الفلتر: 0%</label><input type="range" id="bgOverlayOpacity" min="0" max="100" value="0" class="w-full"></div> </div>
+        <div id="ai-image-generator" class="hidden mt-4 space-y-2"> <label class="label-base">صف الصورة التي تريدها</label> <input type="text" id="ai-image-prompt" placeholder="مثال: متجر أحذية عصري ومشرق" class="input-base"> <button id="ai-generate-image-btn" class="w-full btn-secondary mt-2 flex items-center justify-center gap-2">✨ توليد صورة</button> <div id="ai-image-loading" class="hidden mt-2 flex items-center justify-center gap-2 text-gray-500"><div class="spinner"></div><span>جاري توليد الصورة...</span></div> </div>
+    `},
+    { title: 'التصميم والتخطيط', content: `
+        <label class="label-base">قالب التخطيط</label> <select id="layoutTemplate" class="input-base"><option value="auto">تلقائي</option><option value="logo-left">شعار يسار</option><option value="logo-top">شعار أعلى</option><option value="text-dominant">النص هو المسيطر</option><option value="product-focused">التركيز على المنتج</option></select>
+        <label class="label-base">الخط</label> <select id="fontFamily" class="input-base"><option value="Tajawal">Tajawal</option><option value="Cairo">Cairo</option><option value="Almarai">Almarai</option><option value="IBM Plex Sans Arabic">IBM Plex</option></select>
+        <label class="label-base">لون النص الأساسي</label><input type="color" id="textColor" value="#FFFFFF" class="w-full h-10">
+        <label class="label-base">محاذاة النص</label> <select id="textAlign" class="input-base"><option value="right">يمين</option><option value="center">وسط</option><option value="left">يسار</option></select>
+        <div class="flex items-center mt-2"><input id="textShadow" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"><label for="textShadow" class="ml-2 mr-2 block text-sm">تفعيل ظل النص</label></div>
+        <label class="label-base">شكل زر CTA</label> <select id="ctaStyle" class="input-base"><option value="pill">حواف دائرية</option><option value="ghost">شفاف بحدود</option><option value="text">نص فقط</option></select>
+        <label class="label-base">لون زر CTA</label><input type="color" id="primaryColor" value="#34D399" class="w-full h-10">
+    `},
+     { title: 'قوالب المشروع', content: `
+        <input type="text" id="templateName" placeholder="اسم القالب" class="input-base"> <div class="flex gap-2 mt-2"> <button id="saveTemplateBtn" class="w-1/2 btn-primary">حفظ القالب</button> <button id="loadTemplateBtn" class="w-1/2 btn-secondary">تحميل قالب</button> </div> <div id="savedTemplates" class="mt-4"></div>
+    `},
+    { title: 'التصدير', content: `
+         <select id="downloadFormat" class="input-base"> <option value="png">PNG</option> <option value="jpeg">JPG</option> <option value="webp">WEBP</option> </select>
+        <button id="downloadAll" class="w-full btn-primary mt-2">تحميل الكل (ZIP)</button>
+    `}
+];
+
+function setupUI() {
+    const container = $('#accordion-container');
+    container.innerHTML = accordionData.map((item) => `
+        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg">
+            <button class="accordion-header w-full text-right p-4 font-bold flex justify-between items-center">
+                <span>${item.title}</span>
+                <svg class="w-5 h-5 transform transition-transform" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
+            <div class="accordion-content"><div class="p-4 space-y-4 border-t border-gray-300 dark:border-gray-600">${item.content}</div></div>
+        </div>
+    `).join('');
+    
+    const baseStyles = 'w-full bg-gray-50 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-md px-3 py-2 text-gray-800 dark:text-white focus:ring-emerald-500 focus:border-emerald-500';
+    $$('.input-base').forEach(el => el.className = `${el.className} ${baseStyles}`);
+    $$('.input-file').forEach(el => el.className = `${el.className} w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600`);
+    $$('.label-base').forEach(el => el.className = `${el.className} block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1`);
+    $$('.btn-primary').forEach(el => el.className = `${el.className} bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-md transition duration-300`);
+    $$('.btn-secondary').forEach(el => el.className = `${el.className} bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition duration-300`);
+    $$('.ai-btn').forEach(el => el.className = `${el.className} text-xl hover:scale-125 transition-transform`);
+
+    const firstHeader = $('.accordion-header');
+    const firstContent = firstHeader.nextElementSibling;
+    firstHeader.querySelector('svg').style.transform = 'rotate(180deg)';
+    firstContent.style.maxHeight = firstContent.scrollHeight + "px";
+}
+
+// --- EVENT LISTENERS ---
+function setupEventListeners() {
+    $$('.accordion-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('svg');
+            const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+            $$('.accordion-content').forEach(c => c.style.maxHeight = null);
+            $$('.accordion-header svg').forEach(i => i.style.transform = 'rotate(0deg)');
+            if (!isOpen) {
+                content.style.maxHeight = content.scrollHeight + "px";
+                icon.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+
+    $('#theme-toggle').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        $('#theme-icon-light').classList.toggle('hidden');
+        $('#theme-icon-dark').classList.toggle('hidden');
+    });
+
+    $$('.control-panel input, .control-panel select, .control-panel textarea').forEach(el => {
+        el.addEventListener('input', () => {
+            if (!el.closest('.ai-btn')) { updateUIState(); generateAllBanners(); }
+        });
+    });
+
+    $('#regenerateBtn').addEventListener('click', generateAllBanners);
+    $('#aiDesignBtn').addEventListener('click', runAiDesigner);
+    $('#aiResizeBtn').addEventListener('click', runAiResize);
+
+
+    // AI Listeners
+    $$('.ai-btn').forEach(btn => btn.addEventListener('click', (e) => openAiCopyModal(e.target.dataset.type)));
+    $('#ai-generate-copy-btn').addEventListener('click', handleAiCopyGeneration);
+    $('#ai-close-modal-btn').addEventListener('click', closeAiCopyModal);
+    $('#ai-generate-image-btn').addEventListener('click', handleAiImageGeneration);
+    $('#removeBgBtn').addEventListener('click', handleRemoveBackground);
+
+    // Image Uploads
+    $('#logo').addEventListener('change', (e) => handleImageUpload(e, 'logo'));
+    $('#bgImage').addEventListener('change', (e) => handleImageUpload(e, 'bgImage'));
+    $('#productImage').addEventListener('change', (e) => handleImageUpload(e, 'product'));
+    
+    $('#addCustomSizeBtn').addEventListener('click', addCustomSize);
+    $('#saveTemplateBtn').addEventListener('click', saveTemplate);
+    $('#loadTemplateBtn').addEventListener('click', loadTemplate);
+    $('#downloadAll').addEventListener('click', downloadAllAsZip);
+}
+
+function updateUIState() {
+    const bgType = $('#bgType').value;
+    $('#solid-color-picker').style.display = bgType === 'solid' ? 'block' : 'none';
+    $('#gradient-color-picker').style.display = bgType === 'gradient' ? 'grid' : 'none';
+    $('#image-bg-controls').style.display = bgType === 'image' ? 'block' : 'none';
+    $('#ai-image-generator').style.display = bgType === 'ai-image' ? 'block' : 'none';
+    $('#custom-size-container').style.display = $('#platform').value === 'custom' ? 'block' : 'none';
+    $('#product-image-controls').style.display = productImage ? 'block' : 'none';
+    currentSizes = platformSizes[$('#platform').value] || [];
+}
+
+// --- CORE LOGIC & DRAWING ---
+function generateAllBanners() {
+    $('#preview-grid').innerHTML = '';
+    if (currentSizes.length === 0 && $('#platform').value === 'custom') {
+        $('#preview-grid').innerHTML = `<p class="col-span-full text-center text-gray-500">أضف مقاسًا مخصصًا للبدء.</p>`;
+        return;
+    }
+    
+    const settings = getSettings();
+    
+    currentSizes.forEach(size => {
+        const canvasContainer = document.createElement('div');
+        canvasContainer.className = 'flex flex-col items-center space-y-2';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = size.width;
+        canvas.height = size.height;
+        canvas.className = 'bg-gray-700 rounded-lg shadow-md';
+        
+        const randomSettings = {
+            ...settings,
+            headline: settings.headlines[Math.floor(Math.random() * settings.headlines.length)],
+            description: settings.descriptions[Math.floor(Math.random() * settings.descriptions.length)],
+            cta: settings.ctas[Math.floor(Math.random() * settings.ctas.length)],
+        };
+        
+        drawBanner(canvas, size, randomSettings);
+
+        const info = document.createElement('p');
+        info.className = 'text-sm text-gray-500 dark:text-gray-400 text-center';
+        info.textContent = `${size.name} (${size.width}x${size.height})`;
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'تحميل';
+        downloadBtn.className = 'w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-md text-sm transition duration-300';
+        downloadBtn.onclick = () => downloadCanvas(canvas, `${$('#platform').value}-${size.name}`);
+
+        canvasContainer.appendChild(info);
+        canvasContainer.appendChild(canvas);
+        canvasContainer.appendChild(downloadBtn);
+        $('#preview-grid').appendChild(canvasContainer);
+    });
+}
+
+function getSettings() {
+    const settings = {};
+    $$('.control-panel input, .control-panel select, .control-panel textarea').forEach(el => {
+         if (el.type === 'checkbox') {
+            settings[el.id] = el.checked;
+        } else {
+            settings[el.id] = el.value;
+        }
+    });
+    settings.headlines = [settings.headline1, settings.headline2, settings.headline3].filter(Boolean);
+    settings.descriptions = [settings.description1, settings.description2, settings.description3].filter(Boolean);
+    settings.ctas = [settings.cta1, settings.cta2, settings.cta3].filter(Boolean);
+    if(settings.headlines.length === 0) settings.headlines = [""];
+    if(settings.descriptions.length === 0) settings.descriptions = [""];
+    if(settings.ctas.length === 0) settings.ctas = [""];
+    return settings;
+}
+
+function drawBanner(canvas, size, settings) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, size.width, size.height);
+    drawBackground(ctx, size, settings);
+
+    const padding = Math.min(size.width, size.height) * 0.08;
+    let layout = settings.layoutTemplate;
+    
+    if (layout === 'product-focused' && productOverlayImage) {
+        drawProductFocusedLayout(ctx, size, settings);
+        return;
+    }
+
+    if (layout === 'auto') {
+        layout = size.width > size.height * 1.5 ? 'logo-left' : 'logo-top';
+    }
+
+    if (layout === 'text-dominant') {
+        if (logoImage) drawLogo(ctx, size.width - padding - (size.width*0.15), padding, size.width*0.15, size.height*0.15);
+        drawDominantText(ctx, padding, padding, size.width - padding*2, size.height - padding*2, settings);
+    } else if (layout === 'logo-left' && size.width > size.height) {
+        const logoAreaWidth = size.width * 0.4;
+        const textAreaX = logoAreaWidth;
+        const textAreaWidth = size.width - logoAreaWidth - padding;
+        if (logoImage) drawLogo(ctx, padding, padding, logoAreaWidth - padding, size.height - padding*2);
+        drawTextAndCTA(ctx, textAreaX, padding, textAreaWidth, size.height - padding*2, settings);
+    } else {
+        const logoAreaHeight = size.height * 0.3;
+        const textAreaY = logoImage ? logoAreaHeight : padding;
+        const textAreaHeight = size.height - textAreaY - padding;
+        if (logoImage) drawLogo(ctx, padding, padding, size.width - padding*2, logoAreaHeight - padding);
+        drawTextAndCTA(ctx, padding, textAreaY, size.width - padding*2, textAreaHeight, settings);
+    }
+}
+
+function getOptimalFontSize(ctx, text, fontWeight, fontFamily, maxWidth, maxHeight) {
+    let fontSize = Math.min(maxWidth / 2, maxHeight);
+    if (!text) return fontSize * 0.8; 
+    while (fontSize > 8) {
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        const lines = getTextLines(ctx, text, maxWidth);
+        const textHeight = lines.length * fontSize * 1.2;
+        if (textHeight <= maxHeight && lines.every(line => ctx.measureText(line).width <= maxWidth)) {
+            return fontSize;
+        }
+        fontSize -= 2;
+    }
+    return 8;
+}
+
+function drawTextAndCTA(ctx, x, y, width, height, settings) {
+    const ctaHeight = Math.min(height * 0.25, 80); 
+    const availableHeightForText = height - ctaHeight - (height * 0.05);
+
+    const headlineSize = getOptimalFontSize(ctx, settings.headline, '900', settings.fontFamily, width, availableHeightForText * 0.5);
+    const descSize = getOptimalFontSize(ctx, settings.description, '400', settings.fontFamily, width, availableHeightForText * 0.4);
+    
+    ctx.font = `900 ${headlineSize}px ${settings.fontFamily}`;
+    const h1Lines = getTextLines(ctx, settings.headline, width);
+    const h1Height = h1Lines.length * headlineSize * 1.2;
+
+    ctx.font = `400 ${descSize}px ${settings.fontFamily}`;
+    const dLines = getTextLines(ctx, settings.description, width);
+    const dHeight = dLines.length * descSize * 1.3;
+    
+    const totalContentHeight = h1Height + dHeight + (headlineSize * 0.2);
+    let currentY = y + Math.max(0, (availableHeightForText - totalContentHeight) / 2);
+
+    ctx.fillStyle = settings.textColor;
+    ctx.textAlign = settings.textAlign;
+    const xPos = settings.textAlign === 'center' ? x + width/2 : (settings.textAlign === 'right' ? x + width : x);
+
+    applyTextShadow(ctx, settings);
+    ctx.font = `900 ${headlineSize}px ${settings.fontFamily}`;
+    drawTextLines(ctx, h1Lines, xPos, currentY, headlineSize * 1.2);
+    currentY += h1Height + (headlineSize * 0.2);
+
+    ctx.font = `400 ${descSize}px ${settings.fontFamily}`;
+    drawTextLines(ctx, dLines, xPos, currentY, descSize * 1.3);
+    resetTextShadow(ctx);
+
+    const ctaY = y + height - ctaHeight;
+    const ctaWidth = Math.min(width * 0.8, 400);
+    const ctaX = settings.textAlign === 'center' ? x + (width - ctaWidth)/2 : (settings.textAlign === 'right' ? x + width - ctaWidth : x);
+    
+    drawCtaButton(ctx, ctaX, ctaY, ctaWidth, ctaHeight, settings);
+}
+
+function drawDominantText(ctx, x, y, width, height, settings) {
+    const headlineSize = getOptimalFontSize(ctx, settings.headline, '900', settings.fontFamily, width, height);
+    ctx.font = `900 ${headlineSize}px ${settings.fontFamily}`;
+    const h1Lines = getTextLines(ctx, settings.headline, width);
+    const totalTextHeight = h1Lines.length * headlineSize * 1.2;
+    let currentY = y + (height - totalTextHeight) / 2;
+    
+    ctx.fillStyle = settings.textColor;
+    ctx.textAlign = settings.textAlign;
+    const xPos = settings.textAlign === 'center' ? x + width/2 : (settings.textAlign === 'right' ? x + width : x);
+
+    applyTextShadow(ctx, settings);
+    drawTextLines(ctx, h1Lines, xPos, currentY, headlineSize * 1.2);
+    resetTextShadow(ctx);
+}
+
+function drawProductFocusedLayout(ctx, size, settings) {
+    const padding = Math.min(size.width, size.height) * 0.05;
+    const productAreaWidth = size.width / 2;
+    const textAreaX = productAreaWidth + padding;
+    const textAreaWidth = size.width - productAreaWidth - (padding * 2);
+
+    if (productOverlayImage) {
+        const pAspect = productOverlayImage.width / productOverlayImage.height;
+        let pW = productAreaWidth - (padding * 2);
+        let pH = pW / pAspect;
+        if (pH > size.height - (padding * 2)) {
+            pH = size.height - (padding * 2);
+            pW = pH * pAspect;
+        }
+        const pX = padding + (productAreaWidth - padding * 2 - pW) / 2;
+        const pY = (size.height - pH) / 2;
+        ctx.drawImage(productOverlayImage, pX, pY, pW, pH);
+    }
+    drawTextAndCTA(ctx, textAreaX, padding, textAreaWidth, size.height - (padding * 2), settings);
+}
+
+function drawBackground(ctx, size, settings) {
+    if (settings.bgType === 'solid' || (settings.bgType === 'image' && !bgImage) || (settings.bgType === 'ai-image' && !bgImage)) {
+        ctx.fillStyle = settings.bgColor;
+        ctx.fillRect(0, 0, size.width, size.height);
+    } else if (settings.bgType === 'gradient') {
+        const gradient = ctx.createLinearGradient(0, 0, size.width, size.height);
+        gradient.addColorStop(0, settings.gradientColor1);
+        gradient.addColorStop(1, settings.gradientColor2);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size.width, size.height);
+    } else if (bgImage && (settings.bgType === 'image' || settings.bgType === 'ai-image')) {
+        const opacity = parseFloat(settings.bgOpacity) / 100 || 1.0;
+        ctx.globalAlpha = opacity;
+        const imgRatio = bgImage.width / bgImage.height;
+        const canvasRatio = size.width / size.height;
+        let sx = 0, sy = 0, sWidth = bgImage.width, sHeight = bgImage.height;
+        if (imgRatio > canvasRatio) { sWidth = sHeight * canvasRatio; sx = (bgImage.width - sWidth) / 2; } 
+        else { sHeight = sWidth / canvasRatio; sy = (bgImage.height - sHeight) / 2; }
+        ctx.drawImage(bgImage, sx, sy, sWidth, sHeight, 0, 0, size.width, size.height);
+        ctx.globalAlpha = 1.0;
+
+        const overlayOpacity = parseFloat(settings.bgOverlayOpacity) / 100 || 0;
+        if (overlayOpacity > 0) {
+            ctx.fillStyle = settings.bgOverlayColor;
+            ctx.globalAlpha = overlayOpacity;
+            ctx.fillRect(0, 0, size.width, size.height);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+}
+
+function drawLogo(ctx, x, y, maxWidth, maxHeight) {
+     if (!logoImage) return;
+     const aspect = logoImage.width / logoImage.height;
+     let w = maxWidth, h = w / aspect;
+     if (h > maxHeight) { h = maxHeight; w = h * aspect; }
+     ctx.drawImage(logoImage, x + (maxWidth - w) / 2, y + (maxHeight - h) / 2, w, h);
+}
+
+function drawCtaButton(ctx, x, y, width, height, settings) {
+    if (!settings.cta) return;
+    
+    const padding = height * 0.5;
+    let fontSize = height * 0.5;
+    ctx.font = `bold ${fontSize}px ${settings.fontFamily}`;
+
+    while(ctx.measureText(settings.cta).width > width - padding && fontSize > 8) {
+        fontSize -= 1;
+        ctx.font = `bold ${fontSize}px ${settings.fontFamily}`;
+    }
+
+    ctx.fillStyle = settings.primaryColor;
+    ctx.strokeStyle = settings.primaryColor;
+    ctx.lineWidth = 4;
+    
+    if (settings.ctaStyle === 'pill') {
+        const radius = height / 2;
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, [radius]);
+        ctx.fill();
+    } else if (settings.ctaStyle === 'ghost') {
+        const radius = height / 4;
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, [radius]);
+        ctx.stroke();
+    }
+    
+    ctx.fillStyle = (settings.ctaStyle === 'ghost' || settings.ctaStyle === 'text') ? settings.primaryColor : getContrastingTextColor(settings.primaryColor);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    applyTextShadow(ctx, settings);
+    ctx.fillText(settings.cta, x + width / 2, y + height / 2 + (fontSize * 0.05));
+    resetTextShadow(ctx);
+}
+
+function getTextLines(ctx, text, maxWidth) {
+    if (!text) return [];
+    const words = text.split(' ');
+    let line = '', lines = [];
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+            lines.push(line.trim());
+            line = words[n] + ' ';
+        } else {
+            line = testLine;
+        }
+    }
+    lines.push(line.trim());
+    return lines;
+}
+
+function drawTextLines(ctx, lines, x, y, lineHeight) {
+    let lineY = y + (lineHeight * 0.8) / 2; // Adjust for better vertical centering
+    lines.forEach(l => {
+        ctx.fillText(l, x, lineY);
+        lineY += lineHeight;
+    });
+}
+
+function applyTextShadow(ctx, settings) {
+    if (settings.textShadow) {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+    }
+}
+
+function resetTextShadow(ctx) {
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+}
+
+// --- IMAGE & FILE HANDLING ---
+function handleImageUpload(e, type) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+            if (type === 'logo') { logoImage = img; $('#logo-preview').src = event.target.result; $('#logo-preview').classList.remove('hidden'); }
+            else if (type === 'bgImage') { bgImage = img; $('#bgType').value = 'image'; }
+            else if (type === 'product') { productImage = img; productOverlayImage = img; $('#product-image-preview').src = event.target.result; }
+            updateUIState();
+            generateAllBanners();
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function downloadCanvas(canvas, filename) {
+    const format = $('#downloadFormat').value;
+    const link = document.createElement('a');
+    link.download = `${filename.replace(/ /g, '-')}.${format}`;
+    link.href = canvas.toDataURL(`image/${format}`, 0.9);
+    link.click();
+}
+
+async function downloadAllAsZip() {
+    $('#loading-indicator').classList.remove('hidden');
+    const zip = new JSZip(); const format = $('#downloadFormat').value; const platform = $('#platform').value;
+    const canvases = $$('#preview-grid canvas');
+    for (let i = 0; i < canvases.length; i++) {
+        const canvas = canvases[i]; const size = currentSizes[i];
+        const filename = `${platform}-${size.name.replace(/ /g, '-')}.${format}`;
+        const blob = await (await fetch(canvas.toDataURL(`image/${format}`, 0.9))).blob();
+        zip.file(filename, blob);
+    }
+    zip.generateAsync({ type: 'blob' }).then(content => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = `${platform}-banners.zip`; link.click();
+        $('#loading-indicator').classList.add('hidden');
+    });
+}
+
+function addCustomSize() {
+    const w = parseInt($('#customWidth').value);
+    const h = parseInt($('#customHeight').value);
+    if (w && h && w > 0 && h > 0) {
+        const name = `Custom ${w}x${h}`;
+        platformSizes.custom.push({ name, width: w, height: h });
+        currentSizes = platformSizes.custom;
+        $('#customWidth').value = ''; $('#customHeight').value = '';
+        generateAllBanners();
+    }
+}
+
+// --- TEMPLATE MANAGEMENT ---
+function saveTemplate() {
+    const name = $('#templateName').value;
+    if (!name) { alert('الرجاء إدخال اسم للقالب'); return; }
+    const settings = getSettings();
+    localStorage.setItem(`ad_template_${name}`, JSON.stringify(settings));
+    loadSavedTemplates();
+}
+function loadTemplate() {
+    const name = prompt("ادخل اسم القالب الذي تريد تحميله:");
+    if (name) {
+        const settingsString = localStorage.getItem(`ad_template_${name}`);
+        if (settingsString) {
+            const settings = JSON.parse(settingsString);
+            Object.keys(settings).forEach(key => {
+                const el = $(`#${key}`);
+                if (el) {
+                    if (el.type === 'checkbox') el.checked = settings[key];
+                    else el.value = settings[key];
+                }
+            });
+            updateUIState();
+            generateAllBanners();
+        } else {
+            alert('لم يتم العثور على قالب بهذا الاسم.');
+        }
+    }
+}
+function loadSavedTemplates() {
+    const container = $('#savedTemplates');
+    container.innerHTML = '<h6 class="font-bold text-gray-500">القوالب المحفوظة:</h6>';
+    let hasTemplates = false;
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('ad_template_')) {
+            hasTemplates = true;
+            const name = key.replace('ad_template_', '');
+            container.innerHTML += `<p class="text-xs text-gray-400">- ${name}</p>`;
+        }
+    }
+    if (!hasTemplates) {
+        container.innerHTML += `<p class="text-xs text-gray-400">لا يوجد قوالب محفوظة.</p>`
+    }
+}
+
+
+// --- AI MODAL & API SIMULATION ---
+function openAiCopyModal(type) {
+    currentAiCopyType = type;
+    const titles = { headline: 'اقتراح عناوين رئيسية', description: 'اقتراح نصوص وصفية', cta: 'اقتراح دعوة لاتخاذ إجراء' };
+    $('#ai-modal-title').textContent = titles[type];
+    $('#ai-suggestions-container').innerHTML = '';
+    $('#ai-copy-modal').classList.remove('hidden');
+    setTimeout(() => $('#ai-copy-modal > div').classList.remove('scale-95', 'opacity-0'), 10);
+}
+
+function closeAiCopyModal() {
+    $('#ai-copy-modal > div').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => $('#ai-copy-modal').classList.add('hidden'), 300);
+}
+
+async function handleAiCopyGeneration() {
+    const productName = $('#ai-product-name').value;
+    const targetAudience = $('#ai-target-audience').value;
+    if (!productName || !targetAudience) { alert('الرجاء إدخال وصف المنتج والجمهور المستهدف.'); return; }
+    
+    $('#ai-suggestions-loading').classList.remove('hidden');
+    $('#ai-suggestions-container').innerHTML = '';
+
+    // NOTE: This is a placeholder for a real API call to a generative model like Gemini.
+    const fakeApiResponse = generateFakeAiCopy(currentAiCopyType, productName);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+
+    $('#ai-suggestions-loading').classList.add('hidden');
+    displayAiSuggestions(fakeApiResponse);
+}
+
+function displayAiSuggestions(suggestions) {
+    const container = $('#ai-suggestions-container');
+    container.innerHTML = '';
+    suggestions.forEach(text => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        div.className = 'p-3 rounded-md bg-gray-100 dark:bg-gray-700 ai-suggestion';
+        div.onclick = () => {
+            const inputs = $$(`[id^=${currentAiCopyType}]`);
+            const emptyInput = Array.from(inputs).find(i => i.value === '');
+            (emptyInput || inputs[0]).value = text;
+            closeAiCopyModal();
+            generateAllBanners();
+        };
+        container.appendChild(div);
+    });
+}
+
+function generateFakeAiCopy(type, product) {
+    if (type === 'headline') return [`حصرياً: ${product} بين يديك!`, `${product}: الجودة التي تستحقها`, `غيّر حياتك مع ${product}`];
+    if (type === 'description') return [`تجربة فريدة تنتظرك. اكتشف ${product} الآن واحصل على أفضل جودة.`, `صُنع بحب وشغف. ${product} يمنحك التميز الذي تبحث عنه.`, `لا تفوّت الفرصة! ${product} متوفر لفترة محدودة.`];
+    return ['اطلب الآن', 'اكتشف المزيد', 'احصل عليه اليوم'];
+}
+
+async function handleAiImageGeneration() {
+    const prompt = $('#ai-image-prompt').value;
+    if (!prompt) { alert('الرجاء كتابة وصف للصورة.'); return; }
+    
+    $('#ai-image-loading').classList.remove('hidden');
+    
+    // SIMULATION: Use a placeholder service for image generation
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+        bgImage = img;
+        $('#ai-image-loading').classList.add('hidden');
+        generateAllBanners();
+    };
+    img.onerror = () => {
+         $('#ai-image-loading').classList.add('hidden');
+         alert('فشل توليد الصورة. الرجاء المحاولة مرة أخرى.');
+    }
+    img.src = `https://placehold.co/1080x1080/2d3748/ffffff?text=${encodeURIComponent(prompt)}`;
+}
+
+async function handleRemoveBackground() {
+    if (!productImage) return;
+    $('#remove-bg-loading').classList.remove('hidden');
+    // SIMULATION: In a real app, this would be an API call. Here we just reuse the original image.
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    productOverlayImage = productImage;
+    $('#remove-bg-loading').classList.add('hidden');
+    $('#layoutTemplate').value = 'product-focused';
+    generateAllBanners();
+}
+
+
+// --- COLOR & DESIGN AI ---
+function runAiDesigner() {
+    const sourceImage = bgImage || logoImage || productImage;
+    if (sourceImage) {
+        extractPalette(sourceImage).then(palette => {
+            if (palette.length > 0) {
+                 const vibrantColor = findMostSaturatedColor(palette);
+                 const dominantColor = palette[0];
+                 const secondDominant = palette.length > 1 ? palette[1] : vibrantColor;
+                 $('#bgType').value = 'gradient';
+                 $('#gradientColor1').value = dominantColor.hex;
+                 $('#gradientColor2').value = secondDominant.hex;
+                 $('#primaryColor').value = vibrantColor.hex;
+                 $('#textColor').value = getContrastingTextColor(dominantColor.hex);
+                 $('#textShadow').checked = true;
+            }
+            applyAiTypography();
+        });
+    } else {
+        const baseColor = getRandomHexColor();
+        const complementary = getComplementaryColor(baseColor);
+        const analogous = getAnalogousColors(baseColor);
+        $('#bgType').value = 'gradient';
+        $('#gradientColor1').value = analogous[0];
+        $('#gradientColor2').value = analogous[1];
+        $('#primaryColor').value = complementary;
+        $('#textColor').value = getContrastingTextColor(analogous[0]);
+        $('#textShadow').checked = false;
+        applyAiTypography();
+    }
+}
+
+function runAiResize() {
+    alert('سيتم تفعيل هذه الميزة قريبًا لاختيار أفضل تخطيط تلقائيًا لكل مقاس!');
+}
+
+function applyAiTypography() {
+    $('#fontFamily').value = 'Cairo';
+    $('#textAlign').value = 'center';
+    updateUIState();
+    generateAllBanners();
+}
+
+function extractPalette(image, count = 5) {
+    return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const MAX_WIDTH = 100;
+        const scale = MAX_WIDTH / image.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = image.height * scale;
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const colorCounts = {};
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = Math.round(data[i] / 32) * 32;
+            const g = Math.round(data[i+1] / 32) * 32;
+            const b = Math.round(data[i+2] / 32) * 32;
+            const key = `${r},${g},${b}`;
+            colorCounts[key] = (colorCounts[key] || 0) + 1;
+        }
+
+        const sortedColors = Object.entries(colorCounts).sort(([,a],[,b]) => b-a);
+        const palette = sortedColors.slice(0, count).map(([key]) => {
+            const [r, g, b] = key.split(',').map(Number);
+            return { r, g, b, hex: rgbToHex(r, g, b) };
+        });
+        resolve(palette);
+    });
+}
+
+function findMostSaturatedColor(palette) {
+    if(!palette || palette.length === 0) return {hex: '#34D399'};
+    return palette.reduce((max, current) => {
+        const maxSat = rgbToHsl(max.r, max.g, max.b)[1];
+        const currentSat = rgbToHsl(current.r, current.g, current.b)[1];
+        return currentSat > maxSat ? current : max;
+    }, palette[0]);
+}
+function getContrastingTextColor(hex) { 
+    if (!hex) return '#FFFFFF';
+    try {
+        const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+        return (r * 299 + g * 587 + b * 114) / 1000 > 128 ? '#000000' : '#FFFFFF';
+    } catch(e) { return '#FFFFFF'; }
+}
+
+function getRandomHexColor() { return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'); }
+function hexToRgb(hex) {
+    let r = 0, g = 0, b = 0;
+    if (hex.length == 4) { r = parseInt(hex[1] + hex[1], 16); g = parseInt(hex[2] + hex[2], 16); b = parseInt(hex[3] + hex[3], 16); }
+    else if (hex.length == 7) { r = parseInt(hex.substring(1, 3), 16); g = parseInt(hex.substring(3, 5), 16); b = parseInt(hex.substring(5, 7), 16); }
+    return { r, g, b };
+}
+function rgbToHex(r, g, b) { return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0'); }
+function getComplementaryColor(hex) { const {r, g, b} = hexToRgb(hex); return rgbToHex(255 - r, 255 - g, 255 - b); }
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; } 
+    else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch(max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return [h * 360, s, l];
+}
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if(s === 0) { r = g = b = l; } 
+    else {
+        const hue2rgb = (p, q, t) => {
+            if(t < 0) t += 1; if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        h /= 360;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+function getAnalogousColors(hex) {
+    const {r, g, b} = hexToRgb(hex);
+    let [h, s, l] = rgbToHsl(r, g, b);
+    const analogous1 = hslToRgb((h + 30) % 360, s, l);
+    const analogous2 = hslToRgb((h - 30 + 360) % 360, s, l);
+    return [rgbToHex(analogous1[0], analogous1[1], analogous1[2]), rgbToHex(analogous2[0], analogous2[1], analogous2[2])];
+}
+
+
+// --- APP INITIALIZATION ---
+window.onload = () => {
+    // Set dynamic date in header
+    const today = new Date();
+    const dateString = today.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
+    $('#version-info').textContent += `آخر تحديث: ${dateString}`;
+    
+    setupUI();
+    setupEventListeners();
+    updateUIState();
+    loadSavedTemplates();
+    generateAllBanners();
+};
+</script>
+
+</body>
+</html>
+
